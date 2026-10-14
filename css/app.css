@@ -76,7 +76,7 @@ body.playing nav.tabs{display:none}
 .links a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);border:1px solid var(--line);background:var(--soft);padding:8px 12px;border-radius:8px;font-size:14px;font-weight:500}
 .big{width:100%;padding:22px;font:800 26px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;border-radius:14px;background:var(--work);color:var(--work-ink);border:none;min-height:72px}
 .big.rest{background:var(--rest);color:var(--rest-ink)}
-.score{font:800 30px/1 var(--display);font-variant-numeric:tabular-nums}
+.score{font:800 clamp(18px,6vw,30px)/1.05 var(--display);text-align:right;font-variant-numeric:tabular-nums}
 .plist{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
 .plist li{border-bottom:1px solid var(--line)}
 .plist li button{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;width:100%;padding:11px 4px;font-size:14px}

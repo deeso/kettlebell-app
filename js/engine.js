@@ -202,14 +202,14 @@ export class Runner {
     const b = this.block(); const r = +b.restAfterRound || 0;
     this.ri++;
     const lastBlock = this.bi === this.w.blocks.length - 1;
+    let lead = [];
     if (this.ri >= this.roundsInBlock()) {
       if (lastBlock) { this.finish(); return; }
       this.bi++; this.ri = 0;
-      const nb = this.block();
-      this.h.speak([`${nb.name}.`]);
+      lead = [`${this.block().name}.`];
     }
-    if (r > 0) { this.phase = 'rest'; this.phaseLeft = r; const n = this.current(); this.h.speak([`Rest, ${r} seconds.`, 'Next.'].concat(moveSeq(n, false))); }
-    else { this.enter(false); this.h.speak(moveSeq(this.current(), true), 900); }
+    if (r > 0) { this.phase = 'rest'; this.phaseLeft = r; const n = this.current(); this.h.speak([`Rest, ${r} seconds.`].concat(lead, ['Next.'], moveSeq(n, false))); }
+    else { this.enter(false); this.h.speak(lead.concat(moveSeq(this.current(), !lead.length))); }
     this.h.change();
   }
 

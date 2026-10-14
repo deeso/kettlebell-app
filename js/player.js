@@ -108,7 +108,7 @@ function paint() {
   ph.className = 'chip ' + (['rest', 'trans', 'emomrest', 'done', 'ready'].includes(r.phase) || !r.running ? 'rest' : 'work');
   big.disabled = !r.running || r.finished || r.phase === 'emomrest';
   big.className = 'big' + (['rest', 'trans'].includes(r.phase) ? ' rest' : '');
-  big.textContent = !r.started ? 'Press Start' : r.finished ? 'Finished' : r.phase === 'move' ? 'Done ✓ Next move' : r.phase === 'rest' ? 'Skip rest ▶' : r.phase === 'trans' ? 'Skip transition ▶' : r.phase === 'emomrest' ? 'Resting until next minute' : 'Skip ▶ (end early)';
+  big.textContent = !r.started ? 'Press Start' : r.finished ? 'Finished' : r.phase === 'move' ? 'Done ✓ Next move' : r.phase === 'rest' ? 'Skip rest ▶' : r.phase === 'trans' ? 'Skip transition ▶' : r.phase === 'emomrest' ? 'Resting until next minute' : 'Skip ▶';
   $('#play', el).textContent = r.finished ? 'Done' : r.running ? 'Pause' : r.started ? 'Resume' : 'Start';
   $('#play', el).disabled = r.finished;
   const aw = $('#awake', el); aw.classList.toggle('on', isAwake()); aw.textContent = isAwake() ? 'Screen stays on' : (r.running && state.settings.keepAwake ? 'Screen may sleep (set a longer timeout)' : 'Screen sleeps normally');
