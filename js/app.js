@@ -49,7 +49,7 @@ async function renderWorkouts(el) {
       <button class="sm ghost" data-dup="${esc(w.id)}">Duplicate</button><button class="sm ghost" data-share="${esc(w.id)}">Share</button></div>
     </article>`;
   };
-  el.innerHTML = `<div class="spread"><h1>Workouts</h1><div class="row"><button id="imp" class="sm">Import</button><a class="btn primary sm" href="#/edit">+ New</a></div></div>
+  el.innerHTML = `<div class="spread"><h1>Workouts</h1><div class="row"><button id="refresh" class="sm" aria-label="Check for app updates" title="Check for updates">⟳</button><button id="imp" class="sm">Import</button><a class="btn primary sm" href="#/edit">+ New</a></div></div>
     ${wos.length ? wos.map(card).join('') : '<div class="empty">No workouts yet. Tap + New to build one.</div>'}`;
   $$('[data-dup]', el).forEach(b => b.onclick = async () => {
     const w = await db.get('workouts', b.dataset.dup); const c = JSON.parse(JSON.stringify(w));
@@ -60,6 +60,7 @@ async function renderWorkouts(el) {
     const data = await exportWorkout(b.dataset.share);
     await shareOrDownload(data.workouts[0].name.replace(/[^\w-]+/g, '_') + '.json', JSON.stringify(data, null, 1));
   });
+  $('#refresh', el).onclick = () => checkForUpdates($('#refresh', el));
   $('#imp', el).onclick = async () => {
     const text = await pickFile(); if (!text) return;
     try { const c = await importAll(JSON.parse(text), 'merge'); await loadState(); toast(`Imported ${c.workouts} workout(s), ${c.exercises} exercise(s)`); route(); }
@@ -92,10 +93,12 @@ async function renderSettings(el) {
     <div class="row"><button id="impm">Restore (merge)</button><button id="impr" class="danger">Restore (replace all)</button></div>
     <div class="row"><button id="reseed">Re-add built-in workouts</button></div>
   </section>
+  <section class="card stack"><h2>App updates</h2><p class="small muted" style="margin:0">Your workouts, history and settings are kept when the app updates.</p><div class="row"><button id="upd" class="primary">⟳ Check for updates</button><span class="small muted" id="updst"></span></div></section>
   <section class="card stack small muted"><h2>About</h2>
     <p>Kettlebell Timer · v<span id="ver"></span>. Works offline once installed. To install: open the Chrome menu ⋮ → <b>Install app</b> (or Add to Home screen).</p>
   </section>`;
   $('#ver', el).textContent = window.APP_VERSION || '1';
+  $('#upd', el).onclick = () => checkForUpdates($('#upd', el), $('#updst', el));
   const save = async () => {
     await updateSettings({ voice: $('#st-voice').checked, beeps: $('#st-beeps').checked, beepVolume: +$('#st-vol').value,
       countdown: +$('#st-cd').value, restAfterRound: +$('#st-rest').value, cardio: { type: $('#st-ct').value, len: +$('#st-cl').value }, keepAwake: $('#st-awake').checked });
@@ -125,6 +128,35 @@ async function renderSettings(el) {
   };
 }
 
+
+// ---------------- updates ----------------
+let swReg = null, reloading = false;
+function showUpdateBanner() {
+  if (document.body.classList.contains('playing') || $('#updbanner')) return;
+  const b = document.createElement('button'); b.id = 'updbanner'; b.className = 'toast'; b.style.cursor = 'pointer';
+  b.textContent = 'New version ready · Tap to refresh'; b.onclick = () => hardReload();
+  document.body.appendChild(b);
+}
+async function hardReload() {
+  reloading = true;
+  try { const keys = await caches.keys(); await Promise.all(keys.filter(k => k.startsWith('shell-')).map(k => caches.delete(k))); } catch (e) { }
+  location.reload();
+}
+async function checkForUpdates(btn, statusEl) {
+  const say = t => { if (statusEl) statusEl.textContent = t; else toast(t); };
+  if (!navigator.onLine) { say('You’re offline. Connect to the internet and try again.'); return; }
+  const label = btn.textContent; btn.disabled = true; btn.textContent = statusEl ? 'Checking…' : '…';
+  try {
+    const res = await fetch('index.html?check=' + Date.now(), { cache: 'no-store' });
+    const html = await res.text(); const m = /APP_VERSION\s*=\s*"([^"]+)"/.exec(html);
+    const latest = m ? m[1] : null, current = window.APP_VERSION;
+    if (swReg) await swReg.update().catch(() => { });
+    if (latest && latest !== current) { say(`Updating to v${latest}…`); setTimeout(hardReload, 600); return; }
+    say(`You’re up to date (v${current}).`);
+  } catch (e) { say('Couldn’t reach the server. Try again in a moment.'); }
+  btn.disabled = false; btn.textContent = label;
+}
+
 // ---------------- boot ----------------
 (async function boot() {
   try { await ensureSeed(); await loadState(); }
@@ -132,7 +164,14 @@ async function renderSettings(el) {
   setAudioSettings(state.settings);
   window.addEventListener('hashchange', route);
   route();
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => { });
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    swReg = await navigator.serviceWorker.register('sw.js').catch(() => null);
+    // A new version took over in the background: offer a one-tap reload.
+    let hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloading) showUpdateBanner(); hadController = true; });
+    // Check quietly when the app comes back to the foreground.
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && swReg) swReg.update().catch(() => { }); });
+  }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => { });
 })();
 export { route };
