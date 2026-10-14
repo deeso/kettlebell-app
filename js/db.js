@@ -67,9 +67,12 @@ export async function ensureSeed() {
   const have = row ? row.value : 0;
   if (have >= SEED.version) return;
   const [exs, wos] = await Promise.all([db.all('exercises'), db.all('workouts')]);
-  const exIds = new Set(exs.map(e => e.id)), woIds = new Set(wos.map(w => w.id));
+  const exIds = new Set(exs.map(e => e.id)), woById = new Map(wos.map(w => [w.id, w]));
   await db.putMany('exercises', SEED.exercises.filter(e => !exIds.has(e.id)).map(e => ({ ...e, builtIn: true })));
-  await db.putMany('workouts', SEED.workouts.filter(w => !woIds.has(w.id)).map(w => ({ ...w, builtIn: true, updatedAt: Date.now() })));
+  // Add new built-in workouts, and refresh built-ins you have never edited (updatedAt still equals seededAt).
+  const now = Date.now();
+  const fresh = SEED.workouts.filter(w => { const old = woById.get(w.id); return !old || (old.builtIn && old.seededAt && old.updatedAt === old.seededAt); });
+  await db.putMany('workouts', fresh.map(w => ({ ...w, builtIn: true, updatedAt: now, seededAt: now })));
   if (!row) await saveSettings(DEFAULT_SETTINGS);
   await db.put('kv', { key: 'seedVersion', value: SEED.version });
 }

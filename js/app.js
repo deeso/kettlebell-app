@@ -119,7 +119,7 @@ async function renderSettings(el) {
   $('#reseed', el).onclick = async () => {
     const have = new Set((await db.all('workouts')).map(w => w.id)); const exHave = new Set(state.exercises.map(e => e.id));
     const addW = SEED.workouts.filter(w => !have.has(w.id)); const addE = SEED.exercises.filter(e => !exHave.has(e.id));
-    await db.putMany('workouts', addW.map(w => ({ ...w, builtIn: true, updatedAt: Date.now() })));
+    { const now = Date.now(); await db.putMany('workouts', addW.map(w => ({ ...w, builtIn: true, updatedAt: now, seededAt: now }))); }
     await db.putMany('exercises', addE.map(e => ({ ...e, builtIn: true })));
     await loadState(); toast(addW.length || addE.length ? `Added ${addW.length} workouts, ${addE.length} exercises` : 'All built-ins are already here');
   };
