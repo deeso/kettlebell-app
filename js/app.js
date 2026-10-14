@@ -1,0 +1,138 @@
+import { db, ensureSeed, uid, exportAll, importAll, exportWorkout, DEFAULT_SETTINGS } from './db.js';
+import { $, $$, esc, state, loadState, updateSettings, toast, confirmTap, download, shareOrDownload, pickFile, typeLabel, dateLabel, ICONS } from './ui.js';
+import { estimateSeconds, fmt } from './engine.js';
+import { setAudioSettings } from './audio.js';
+import { renderPlayer, leavePlayer } from './player.js';
+import { renderBuilder } from './builder.js';
+import { renderLibrary } from './library.js';
+import { renderHistory, renderSession } from './history.js';
+import { SEED } from './seed.js';
+
+const main = $('main');
+const TABS = [['#/', 'Workouts', 'workouts'], ['#/library', 'Library', 'library'], ['#/history', 'History', 'history'], ['#/settings', 'Settings', 'settings']];
+
+function renderTabs(active) {
+  const nav = $('nav.tabs');
+  nav.innerHTML = TABS.map(([href, label, icon]) => `<a href="${href}" ${active === icon ? 'aria-current="page"' : ''}>${ICONS[icon]}<span>${label}</span></a>`).join('');
+}
+
+async function route() {
+  leavePlayer();
+  const h = location.hash || '#/';
+  const [, view, id] = h.split('/');
+  document.body.classList.toggle('playing', view === 'play');
+  window.scrollTo(0, 0);
+  if (view === 'play') return renderPlayer(main, decodeURIComponent(id));
+  if (view === 'edit') { renderTabs('workouts'); return renderBuilder(main, id ? decodeURIComponent(id) : null); }
+  if (view === 'library') { renderTabs('library'); return renderLibrary(main, id); }
+  if (view === 'history') { renderTabs('history'); return id ? renderSession(main, decodeURIComponent(id)) : renderHistory(main); }
+  if (view === 'settings') { renderTabs('settings'); return renderSettings(main); }
+  renderTabs('workouts'); return renderWorkouts(main);
+}
+
+// ---------------- Workouts ----------------
+async function renderWorkouts(el) {
+  const [wos, sessions] = await Promise.all([db.all('workouts'), db.all('sessions')]);
+  const lastBy = new Map();
+  for (const s of sessions) { const p = lastBy.get(s.workoutId); if (!p || p.endedAt < s.endedAt) lastBy.set(s.workoutId, s); }
+  wos.sort((a, b) => ((lastBy.get(b.id) || {}).endedAt || b.updatedAt || 0) - ((lastBy.get(a.id) || {}).endedAt || a.updatedAt || 0));
+  const card = w => {
+    const moves = w.blocks.flatMap(b => b.items).filter(i => i.kind === 'move');
+    const names = moves.map(i => (state.exMap.get(i.exId) || {}).name || 'Exercise');
+    const len = w.type === 'rounds' ? '~' + Math.round(estimateSeconds(w, state.settings.cardio.len) / 60) + ' min' : Math.round(w.durationSec / 60) + ' min';
+    const last = lastBy.get(w.id);
+    return `<article class="card wcard">
+      <div class="spread"><div class="title">${esc(w.name)}</div><span class="chip">${typeLabel(w.type)}</span></div>
+      <div class="meta"><span>${len}</span><span>·</span><span>${moves.length} moves</span>${last ? `<span>·</span><span>Last: ${esc(dateLabel(last.endedAt))}${last.score ? ' · ' + esc(last.score) : ''}</span>` : ''}</div>
+      <div class="moves">${esc([...new Set(names)].join(', '))}</div>
+      <div class="row"><a class="btn primary" href="#/play/${encodeURIComponent(w.id)}">▶ Start</a><a class="btn" href="#/edit/${encodeURIComponent(w.id)}">✎ Edit</a>
+      <button class="sm ghost" data-dup="${esc(w.id)}">Duplicate</button><button class="sm ghost" data-share="${esc(w.id)}">Share</button></div>
+    </article>`;
+  };
+  el.innerHTML = `<div class="spread"><h1>Workouts</h1><div class="row"><button id="imp" class="sm">Import</button><a class="btn primary sm" href="#/edit">+ New</a></div></div>
+    ${wos.length ? wos.map(card).join('') : '<div class="empty">No workouts yet. Tap + New to build one.</div>'}`;
+  $$('[data-dup]', el).forEach(b => b.onclick = async () => {
+    const w = await db.get('workouts', b.dataset.dup); const c = JSON.parse(JSON.stringify(w));
+    c.id = uid('w'); c.name = w.name + ' (copy)'; c.builtIn = false; c.updatedAt = Date.now();
+    await db.put('workouts', c); toast('Duplicated'); location.hash = '#/edit/' + encodeURIComponent(c.id);
+  });
+  $$('[data-share]', el).forEach(b => b.onclick = async () => {
+    const data = await exportWorkout(b.dataset.share);
+    await shareOrDownload(data.workouts[0].name.replace(/[^\w-]+/g, '_') + '.json', JSON.stringify(data, null, 1));
+  });
+  $('#imp', el).onclick = async () => {
+    const text = await pickFile(); if (!text) return;
+    try { const c = await importAll(JSON.parse(text), 'merge'); await loadState(); toast(`Imported ${c.workouts} workout(s), ${c.exercises} exercise(s)`); route(); }
+    catch (e) { toast(e.message || 'Could not read that file'); }
+  };
+}
+
+// ---------------- Settings ----------------
+async function renderSettings(el) {
+  const s = state.settings;
+  el.innerHTML = `<h1>Settings</h1>
+  <section class="card stack"><h2>Sound</h2>
+    <label class="row"><input type="checkbox" id="st-voice" ${s.voice ? 'checked' : ''}> Voice announcements</label>
+    <label class="row"><input type="checkbox" id="st-beeps" ${s.beeps ? 'checked' : ''}> Beeps</label>
+    <label class="field">Beep volume <input type="range" id="st-vol" min="10" max="100" value="${s.beepVolume}"></label>
+    <p class="small muted">Sounds play alongside your music without pausing it.</p>
+  </section>
+  <section class="card stack"><h2>Defaults for new workouts</h2>
+    <div class="grid2">
+      <label class="field">Countdown beeps<select id="st-cd">${[5, 10, 15].map(n => `<option value="${n}" ${s.countdown == n ? 'selected' : ''}>Last ${n} s</option>`).join('')}</select></label>
+      <label class="field">Rest after each round<select id="st-rest">${[0, 30, 45, 60, 90, 120].map(n => `<option value="${n}" ${s.restAfterRound == n ? 'selected' : ''}>${n ? n + ' s' : 'None'}</option>`).join('')}</select></label>
+      <label class="field">Cardio type<select id="st-ct">${[['mix', 'Mix (rotate)'], ['rope', 'Jump rope'], ['feet', 'Fast feet'], ['hops', 'Side-to-side hops']].map(([v, l]) => `<option value="${v}" ${s.cardio.type === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="field">Cardio length<select id="st-cl">${[20, 30, 45, 60].map(n => `<option value="${n}" ${s.cardio.len == n ? 'selected' : ''}>${n} s</option>`).join('')}</select></label>
+    </div>
+    <label class="row"><input type="checkbox" id="st-awake" ${s.keepAwake ? 'checked' : ''}> Keep screen on during workouts</label>
+  </section>
+  <section class="card stack"><h2>Your data</h2>
+    <p class="small muted">Everything is stored on this phone. Back it up to a file now and then, and use the file to move to a new phone.</p>
+    <div class="row"><button id="exp" class="primary">Back up everything</button><button id="csv">History as CSV</button></div>
+    <div class="row"><button id="impm">Restore (merge)</button><button id="impr" class="danger">Restore (replace all)</button></div>
+    <div class="row"><button id="reseed">Re-add built-in workouts</button></div>
+  </section>
+  <section class="card stack small muted"><h2>About</h2>
+    <p>Kettlebell Timer · v<span id="ver"></span>. Works offline once installed. To install: open the Chrome menu ⋮ → <b>Install app</b> (or Add to Home screen).</p>
+  </section>`;
+  $('#ver', el).textContent = window.APP_VERSION || '1';
+  const save = async () => {
+    await updateSettings({ voice: $('#st-voice').checked, beeps: $('#st-beeps').checked, beepVolume: +$('#st-vol').value,
+      countdown: +$('#st-cd').value, restAfterRound: +$('#st-rest').value, cardio: { type: $('#st-ct').value, len: +$('#st-cl').value }, keepAwake: $('#st-awake').checked });
+    setAudioSettings(state.settings); toast('Saved');
+  };
+  $$('input,select', el).forEach(i => i.addEventListener('change', save));
+  $('#exp', el).onclick = async () => download(`kettlebell-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(await exportAll(), null, 1));
+  $('#csv', el).onclick = async () => {
+    const ss = (await db.all('sessions')).sort((a, b) => a.endedAt - b.endedAt);
+    const rows = [['date', 'workout', 'type', 'minutes', 'score', 'rounds', 'moves', 'reps', 'volume_lb', 'rpe', 'notes']];
+    for (const x of ss) rows.push([new Date(x.endedAt).toISOString(), x.workoutName, x.type, (x.durationSec / 60).toFixed(1), x.score || '', x.rounds, x.moves, x.reps, x.volume, x.rpe || '', (x.notes || '').replace(/\n/g, ' ')]);
+    download('kettlebell-history.csv', rows.map(r => r.map(v => /[",]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v).join(',')).join('\n'), 'text/csv');
+  };
+  const imp = async mode => {
+    const text = await pickFile(); if (!text) return;
+    try { const c = await importAll(JSON.parse(text), mode); await loadState(); setAudioSettings(state.settings); toast(`Restored ${c.workouts} workouts, ${c.sessions} sessions`); route(); }
+    catch (e) { toast(e.message || 'Could not read that file'); }
+  };
+  $('#impm', el).onclick = () => imp('merge');
+  confirmTap($('#impr', el), 'Tap again: replaces everything', () => imp('replace'));
+  $('#reseed', el).onclick = async () => {
+    const have = new Set((await db.all('workouts')).map(w => w.id)); const exHave = new Set(state.exercises.map(e => e.id));
+    const addW = SEED.workouts.filter(w => !have.has(w.id)); const addE = SEED.exercises.filter(e => !exHave.has(e.id));
+    await db.putMany('workouts', addW.map(w => ({ ...w, builtIn: true, updatedAt: Date.now() })));
+    await db.putMany('exercises', addE.map(e => ({ ...e, builtIn: true })));
+    await loadState(); toast(addW.length || addE.length ? `Added ${addW.length} workouts, ${addE.length} exercises` : 'All built-ins are already here');
+  };
+}
+
+// ---------------- boot ----------------
+(async function boot() {
+  try { await ensureSeed(); await loadState(); }
+  catch (e) { main.innerHTML = `<div class="card">Storage is unavailable in this browser mode (${esc(e.message)}). Open the app normally, not in a private window.</div>`; return; }
+  setAudioSettings(state.settings);
+  window.addEventListener('hashchange', route);
+  route();
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => { });
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => { });
+})();
+export { route };
