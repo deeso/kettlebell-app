@@ -12,7 +12,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 G = {  # primary demands: grip, pull (lats/biceps), push (chest/triceps/front delts), overhead (shoulders),
        # hinge (hamstrings/glutes/low back), squat (quads), core, hipflex, plyo (impact/calves)
  'jumping-jacks': {'plyo'}, 'scap-pull-ups': {'grip', 'pull'}, 'kettlebell-halo': {'overhead', 'core'},
- 'goblet-squat-pry': {'squat'}, 'dead-hang': {'grip'}, 'pull-ups': {'grip', 'pull'}, 'chin-ups': {'grip', 'pull'},
+ 'goblet-squat-pry': {'squat'}, 'dead-hang': {'grip'}, 'pull-ups': {'grip', 'pull'}, 'chin-ups': {'grip', 'pull'}, 'pull-ups-plus-negatives': {'grip', 'pull'}, 'chin-up-negatives': {'grip', 'pull'},
  'kettlebell-swings': {'hinge', 'grip'}, 'hanging-knee-raises': {'grip', 'core', 'hipflex'},
  'dips': {'push'}, 'dip-bar-knee-tucks': {'push', 'core', 'hipflex'}, 'kb-goblet-reverse-lunge': {'squat'},
  'kb-clean-and-press': {'overhead', 'push', 'hinge'}, 'burpees': {'push', 'plyo', 'squat'},
@@ -22,6 +22,7 @@ G = {  # primary demands: grip, pull (lats/biceps), push (chest/triceps/front de
 CARDIO = {'plyo'}
 INTENTIONAL = {  # (a, b): why the overlap is worth it
  ('chin-ups', 'push-ups'): 'antagonist superset, no shared muscle',
+ ('chin-up-negatives', 'push-ups'): 'antagonist superset, no shared muscle',
  ('dead-hang', 'cool-down-stretches'): 'hang decompresses the spine after bar work',
 }
 
