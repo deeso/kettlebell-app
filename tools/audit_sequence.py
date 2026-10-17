@@ -22,12 +22,22 @@ G = {  # primary demands: grip, pull (lats/biceps), push (chest/triceps/front de
  'single-leg-deadlifts': {'hinge'}, 'plank-kb-pull-through': {'core', 'push'}, 'kettlebell-glute-bridges': {'hinge'},
  'hollow-body-hold': {'core', 'hipflex'}, 'suitcase-deadlifts': {'hinge', 'grip', 'core'}, 'glute-bridge': {'hinge'}, 'bird-dog': {'core'},
  'high-knees': {'plyo', 'hipflex'},
+ 'skater-hops': {'plyo'}, 'tuck-jumps': {'plyo', 'squat'}, 'broad-jumps': {'plyo', 'hinge'}, 'hand-release-push-ups': {'push'},
+ 'suitcase-march': {'core', 'grip', 'hipflex'}, 'hollow-rock': {'core', 'hipflex'}, 'half-get-up': {'core', 'overhead'},
+ 'upper-complex': {'push', 'pull', 'overhead', 'grip'}, 'lower-complex': {'hinge', 'squat', 'grip'}, 'kb-push-press': {'overhead', 'push'},
+ 'bottoms-up-press': {'overhead', 'grip'}, 'renegade-rows': {'pull', 'core', 'push'}, 'tempo-goblet-squats': {'squat'},
+ 'offset-rack-squats': {'squat', 'core'}, 'plank-kb-pull-through': {'core', 'push'}, 'around-the-world-chop': {'core'},
+ 'v-ups': {'core', 'hipflex'}, 'floor-press': {'push'}, 'gorilla-rows': {'pull', 'grip'}, 'high-pulls': {'pull', 'hinge', 'grip'},
+ 'bear-crawl': {'push', 'core'}, 'kettlebell-deadlifts': {'hinge', 'grip'}, 'double-rack-squats': {'squat', 'core'},
+ 'cossack-squats': {'squat'}, 'kettlebell-halo': {'overhead', 'core'},
 }
 CARDIO = {'plyo'}
 INTENTIONAL = {  # (a, b): why the overlap is worth it
  ('chin-ups', 'push-ups'): 'antagonist superset, no shared muscle',
  ('chin-up-negatives', 'push-ups'): 'antagonist superset, no shared muscle',
  ('dead-hang', 'cool-down-stretches'): 'hang decompresses the spine after bar work',
+ ('double-rack-squats', 'squat-jumps'): 'contrast pair: heavy squat potentiates the jump',
+ ('kettlebell-deadlifts', 'broad-jumps'): 'contrast pair: heavy hinge potentiates the jump',
 }
 
 def demands(it):

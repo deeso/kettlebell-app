@@ -40,7 +40,9 @@ export async function renderPlayer(root, id) {
     <div class="row"><button class="primary" id="play" style="min-width:120px">Start</button><button id="undo">↶ Undo</button><button id="end" class="ghost">Finish</button>
       <label class="row small" style="gap:6px;margin-left:auto"><input type="checkbox" id="pvoice" ${state.settings.voice ? 'checked' : ''}> Voice</label></div>
   </section>
-  <section class="stack"><h2>Plan</h2><ul class="plist" id="plan"></ul></section>`;
+  <section class="stack"><h2>Plan</h2><ul class="plist" id="plan"></ul></section>
+  ${w.notes ? `<section class="card stack"><h2>About this workout</h2><p class="small" style="margin:0">${esc(w.notes)}</p></section>` : ''}
+  ${(w.links || []).length ? `<section class="card stack"><h2>Videos for this routine</h2><div class="links">${w.links.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">▶ ${esc(l.title)}</a>`).join('')}</div></section>` : ''}`;
 
   $('#play', root).onclick = async () => {
     unlockAudio();
