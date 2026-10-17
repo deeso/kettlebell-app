@@ -9,6 +9,7 @@ import { renderHistory, renderSession } from './history.js';
 import { renderReview } from './review.js';
 import { SEED } from './seed.js';
 
+const BUILD = '1.9.0'; // keep in step with APP_VERSION in index.html, VERSION in sw.js and "app" in js/seed.js
 const main = $('main');
 const TABS = [['#/', 'Workouts', 'workouts'], ['#/library', 'Library', 'library'], ['#/history', 'History', 'history'], ['#/settings', 'Settings', 'settings']];
 
@@ -33,14 +34,17 @@ async function route() {
 }
 
 // ---------------- Workouts ----------------
-let onlyStarred = false;
+let onlyStarred = false, wquery = '';
+// Everything a search can match: name, notes, type, tags, block names, exercise names and tags.
+const searchText = w => [w.name, w.notes, typeLabel(w.type), ...(w.tags || []), ...w.blocks.flatMap(b => [b.name, ...b.items.flatMap(i => {
+  const e = state.exMap.get(i.exId); return i.kind === 'cardio' ? ['cardio'] : e ? [e.name, ...(e.tags || [])] : [];
+})])].join(' ').toLowerCase();
 async function renderWorkouts(el) {
   const [wos, sessions] = await Promise.all([db.all('workouts'), db.all('sessions')]);
   const lastBy = new Map();
   for (const s of sessions) { const p = lastBy.get(s.workoutId); if (!p || p.endedAt < s.endedAt) lastBy.set(s.workoutId, s); }
   wos.sort((a, b) => (isStarred(b.id) - isStarred(a.id)) || ((lastBy.get(b.id) || {}).endedAt || b.updatedAt || 0) - ((lastBy.get(a.id) || {}).endedAt || a.updatedAt || 0));
   const nStar = wos.filter(w => isStarred(w.id)).length; if (!nStar) onlyStarred = false;
-  const shown = onlyStarred ? wos.filter(w => isStarred(w.id)) : wos;
   const card = w => {
     const moves = w.blocks.flatMap(b => b.items).filter(i => i.kind === 'move');
     const names = moves.map(i => (state.exMap.get(i.exId) || {}).name || 'Exercise');
@@ -56,18 +60,33 @@ async function renderWorkouts(el) {
   };
   el.innerHTML = `<div class="spread"><h1>Workouts</h1><div class="row"><button id="refresh" class="sm" aria-label="Check for app updates" title="Check for updates">⟳</button><button id="imp" class="sm">Import</button><a class="btn primary sm" href="#/edit">+ New</a></div></div>
     ${nStar ? `<span class="seg" role="group" aria-label="Show" style="justify-self:start"><button type="button" data-show="all" aria-pressed="${!onlyStarred}">All ${wos.length}</button><button type="button" data-show="starred" aria-pressed="${onlyStarred}">★ Starred ${nStar}</button></span>` : ''}
-    ${shown.length ? shown.map(card).join('') : '<div class="empty">No workouts yet. Tap + New to build one.</div>'}`;
+    ${wos.length ? `<input id="wq" type="search" placeholder="Search workouts, exercises, tags (e.g. hiit, curls)" aria-label="Search workouts" value="${esc(wquery)}">` : ''}
+    <div id="wlist" class="stack" style="gap:16px"></div>`;
   $$('[data-show]', el).forEach(b => b.onclick = () => { onlyStarred = b.dataset.show === 'starred'; renderWorkouts(el); });
-  wireStars(el, () => renderWorkouts(el));
-  $$('[data-dup]', el).forEach(b => b.onclick = async () => {
+  const texts = new Map(wos.map(w => [w.id, searchText(w)]));
+  const list = $('#wlist', el);
+  const paintList = () => {
+    const terms = wquery.toLowerCase().split(/\s+/).filter(Boolean);
+    const shown = wos.filter(w => (!onlyStarred || isStarred(w.id)) && terms.every(t => texts.get(w.id).includes(t)));
+    list.innerHTML = shown.length ? shown.map(card).join('')
+      : !wos.length ? '<div class="empty">No workouts yet. Tap + New to build one.</div>'
+      : `<div class="empty">No workouts match “${esc(wquery)}”.</div>`;
+    wireCards();
+  };
+  const wq = $('#wq', el); if (wq) wq.oninput = () => { wquery = wq.value; paintList(); };
+  const wireCards = () => {
+  wireStars(list, () => renderWorkouts(el));
+  $$('[data-dup]', list).forEach(b => b.onclick = async () => {
     const w = await db.get('workouts', b.dataset.dup); const c = JSON.parse(JSON.stringify(w));
     c.id = uid('w'); c.name = w.name + ' (copy)'; c.builtIn = false; c.updatedAt = Date.now();
     await db.put('workouts', c); toast('Duplicated'); location.hash = '#/edit/' + encodeURIComponent(c.id);
   });
-  $$('[data-share]', el).forEach(b => b.onclick = async () => {
+  $$('[data-share]', list).forEach(b => b.onclick = async () => {
     const data = await exportWorkout(b.dataset.share);
     await shareOrDownload(data.workouts[0].name.replace(/[^\w-]+/g, '_') + '.json', JSON.stringify(data, null, 1));
   });
+  };
+  paintList();
   $('#refresh', el).onclick = () => checkForUpdates($('#refresh', el));
   $('#imp', el).onclick = async () => {
     const text = await pickFile(); if (!text) return;
@@ -154,6 +173,8 @@ function showUpdateBanner() {
 }
 async function hardReload() {
   reloading = true;
+  // Refresh the browser's HTTP cache too, or the reload can pick up old copies of the app files.
+  try { await Promise.all(['index.html', 'js/app.js', 'js/ui.js', 'js/db.js', 'js/seed.js', 'js/engine.js', 'js/audio.js', 'js/player.js', 'js/builder.js', 'js/library.js', 'js/history.js', 'js/review.js', 'css/app.css', 'sw.js'].map(f => fetch(f, { cache: 'reload' }).catch(() => null))); } catch (e) { }
   try { const keys = await caches.keys(); await Promise.all(keys.filter(k => k.startsWith('shell-')).map(k => caches.delete(k))); } catch (e) { }
   location.reload();
 }
@@ -174,6 +195,11 @@ async function checkForUpdates(btn, statusEl) {
 
 // ---------------- boot ----------------
 (async function boot() {
+  // index.html, app.js and seed.js must come from the same version; if not, fetch fresh copies once.
+  if (window.APP_VERSION !== BUILD || SEED.app !== BUILD) {
+    let tried = true; try { tried = !!sessionStorage.getItem('fixedMix'); sessionStorage.setItem('fixedMix', '1'); } catch (e) { }
+    if (!tried) return hardReload();
+  }
   try { await ensureSeed(); await loadState(); }
   catch (e) { main.innerHTML = `<div class="card">Storage is unavailable in this browser mode (${esc(e.message)}). Open the app normally, not in a private window.</div>`; return; }
   setAudioSettings(state.settings);
