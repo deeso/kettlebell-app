@@ -9,6 +9,7 @@ import { renderHistory, renderSession } from './history.js';
 import { renderReview } from './review.js';
 import { SEED } from './seed.js';
 
+const BUILD = '1.9.0'; // keep in step with APP_VERSION in index.html, VERSION in sw.js and "app" in js/seed.js
 const main = $('main');
 const TABS = [['#/', 'Workouts', 'workouts'], ['#/library', 'Library', 'library'], ['#/history', 'History', 'history'], ['#/settings', 'Settings', 'settings']];
 
@@ -172,6 +173,8 @@ function showUpdateBanner() {
 }
 async function hardReload() {
   reloading = true;
+  // Refresh the browser's HTTP cache too, or the reload can pick up old copies of the app files.
+  try { await Promise.all(['index.html', 'js/app.js', 'js/ui.js', 'js/db.js', 'js/seed.js', 'js/engine.js', 'js/audio.js', 'js/player.js', 'js/builder.js', 'js/library.js', 'js/history.js', 'js/review.js', 'css/app.css', 'sw.js'].map(f => fetch(f, { cache: 'reload' }).catch(() => null))); } catch (e) { }
   try { const keys = await caches.keys(); await Promise.all(keys.filter(k => k.startsWith('shell-')).map(k => caches.delete(k))); } catch (e) { }
   location.reload();
 }
@@ -192,6 +195,11 @@ async function checkForUpdates(btn, statusEl) {
 
 // ---------------- boot ----------------
 (async function boot() {
+  // index.html, app.js and seed.js must come from the same version; if not, fetch fresh copies once.
+  if (window.APP_VERSION !== BUILD || SEED.app !== BUILD) {
+    let tried = true; try { tried = !!sessionStorage.getItem('fixedMix'); sessionStorage.setItem('fixedMix', '1'); } catch (e) { }
+    if (!tried) return hardReload();
+  }
   try { await ensureSeed(); await loadState(); }
   catch (e) { main.innerHTML = `<div class="card">Storage is unavailable in this browser mode (${esc(e.message)}). Open the app normally, not in a private window.</div>`; return; }
   setAudioSettings(state.settings);
