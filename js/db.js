@@ -54,6 +54,7 @@ export const DEFAULT_SETTINGS = {
   loads: { ...DEFAULT_LOADS },
   cardio: { type: 'mix', len: 30 },
   keepAwake: true,
+  starred: [], // workout ids; kept in settings so built-in refreshes never clear them
   units: 'lb',
 };
 

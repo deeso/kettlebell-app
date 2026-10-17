@@ -140,3 +140,5 @@ table.log td.num{text-align:right;font-variant-numeric:tabular-nums}
 .rvloads li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center}
 @media (max-width:420px){.rvloads li{grid-template-columns:1fr;gap:4px}.rvloads li .chip{justify-self:start}}
 .loadgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+button.star{font-size:22px;line-height:1;padding:4px 8px;min-height:36px;min-width:40px;color:var(--muted)}
+button.star[aria-pressed="true"]{color:var(--work)}

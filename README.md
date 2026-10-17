@@ -8,6 +8,7 @@ An installable, offline-first workout app for kettlebell and bodyweight training
 - **Player:** recorded voice calls ("Next. 10. Romanian deadlifts. 60 pound bell."), beeps that get louder as they count down, form cues and demo links. It keeps the screen on and plays alongside your music without pausing it.
 - **Library:** your exercises (name, spoken name, form cue, defaults, tags) and bell inventory.
 - **Load categories:** workouts say *light*, *medium*, *heavy* or *extra heavy* (or *2x heavy* for two bells) instead of exact weights. Settings → Load presets sets which bell each category means, and every workout follows it. Each category has a short guide for choosing a bell, aimed at timed HIIT intervals.
+- **Stars:** tap ☆ on a workout card or its Review screen to star it. Starred workouts sort to the top, and an All / Starred switch filters the list.
 - **Review:** open any workout to read every block, move, time, load, form cue and demo link before you start.
 - **Transitions and restarts:** set a default transition time in Settings (or apply one to every timed move in a block in the builder). During a workout, *Restart move* restarts the current timer and *Restart round* goes back to the first move of the round.
 - **History:** every finished workout is saved with score, time, reps, pounds moved, effort (RPE) and notes. It shows weekly minutes and per-workout progress charts.

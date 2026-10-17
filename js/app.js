@@ -1,5 +1,5 @@
 import { db, ensureSeed, uid, exportAll, importAll, exportWorkout, DEFAULT_SETTINGS } from './db.js';
-import { $, $$, esc, state, loadState, updateSettings, toast, confirmTap, download, shareOrDownload, pickFile, typeLabel, dateLabel, ICONS } from './ui.js';
+import { $, $$, esc, state, loadState, updateSettings, toast, isStarred, starButton, wireStars, confirmTap, download, shareOrDownload, pickFile, typeLabel, dateLabel, ICONS } from './ui.js';
 import { estimateSeconds, fmt, LOADS, LOAD_KEYS, HIIT_LOAD_TIP } from './engine.js';
 import { setAudioSettings } from './audio.js';
 import { renderPlayer, leavePlayer } from './player.js';
@@ -33,18 +33,21 @@ async function route() {
 }
 
 // ---------------- Workouts ----------------
+let onlyStarred = false;
 async function renderWorkouts(el) {
   const [wos, sessions] = await Promise.all([db.all('workouts'), db.all('sessions')]);
   const lastBy = new Map();
   for (const s of sessions) { const p = lastBy.get(s.workoutId); if (!p || p.endedAt < s.endedAt) lastBy.set(s.workoutId, s); }
-  wos.sort((a, b) => ((lastBy.get(b.id) || {}).endedAt || b.updatedAt || 0) - ((lastBy.get(a.id) || {}).endedAt || a.updatedAt || 0));
+  wos.sort((a, b) => (isStarred(b.id) - isStarred(a.id)) || ((lastBy.get(b.id) || {}).endedAt || b.updatedAt || 0) - ((lastBy.get(a.id) || {}).endedAt || a.updatedAt || 0));
+  const nStar = wos.filter(w => isStarred(w.id)).length; if (!nStar) onlyStarred = false;
+  const shown = onlyStarred ? wos.filter(w => isStarred(w.id)) : wos;
   const card = w => {
     const moves = w.blocks.flatMap(b => b.items).filter(i => i.kind === 'move');
     const names = moves.map(i => (state.exMap.get(i.exId) || {}).name || 'Exercise');
     const len = w.type === 'rounds' ? '~' + Math.round(estimateSeconds(w, state.settings.cardio.len) / 60) + ' min' : Math.round(w.durationSec / 60) + ' min';
     const last = lastBy.get(w.id);
     return `<article class="card wcard">
-      <div class="spread"><a class="title" href="#/review/${encodeURIComponent(w.id)}" style="color:inherit;text-decoration:none">${esc(w.name)}</a><span class="chip">${typeLabel(w.type)}</span></div>
+      <div class="spread"><a class="title" href="#/review/${encodeURIComponent(w.id)}" style="color:inherit;text-decoration:none;flex:1">${esc(w.name)}</a><span class="row" style="gap:6px"><span class="chip">${typeLabel(w.type)}</span>${starButton(w.id)}</span></div>
       <div class="meta"><span>${len}</span><span>·</span><span>${moves.length} moves</span>${last ? `<span>·</span><span>Last: ${esc(dateLabel(last.endedAt))}${last.score ? ' · ' + esc(last.score) : ''}</span>` : ''}</div>
       <div class="moves">${esc([...new Set(names)].join(', '))}</div>
       <div class="row"><a class="btn primary" href="#/play/${encodeURIComponent(w.id)}">▶ Start</a><a class="btn" href="#/review/${encodeURIComponent(w.id)}">☰ Review</a><a class="btn" href="#/edit/${encodeURIComponent(w.id)}">✎ Edit</a>
@@ -52,7 +55,10 @@ async function renderWorkouts(el) {
     </article>`;
   };
   el.innerHTML = `<div class="spread"><h1>Workouts</h1><div class="row"><button id="refresh" class="sm" aria-label="Check for app updates" title="Check for updates">⟳</button><button id="imp" class="sm">Import</button><a class="btn primary sm" href="#/edit">+ New</a></div></div>
-    ${wos.length ? wos.map(card).join('') : '<div class="empty">No workouts yet. Tap + New to build one.</div>'}`;
+    ${nStar ? `<span class="seg" role="group" aria-label="Show" style="justify-self:start"><button type="button" data-show="all" aria-pressed="${!onlyStarred}">All ${wos.length}</button><button type="button" data-show="starred" aria-pressed="${onlyStarred}">★ Starred ${nStar}</button></span>` : ''}
+    ${shown.length ? shown.map(card).join('') : '<div class="empty">No workouts yet. Tap + New to build one.</div>'}`;
+  $$('[data-show]', el).forEach(b => b.onclick = () => { onlyStarred = b.dataset.show === 'starred'; renderWorkouts(el); });
+  wireStars(el, () => renderWorkouts(el));
   $$('[data-dup]', el).forEach(b => b.onclick = async () => {
     const w = await db.get('workouts', b.dataset.dup); const c = JSON.parse(JSON.stringify(w));
     c.id = uid('w'); c.name = w.name + ' (copy)'; c.builtIn = false; c.updatedAt = Date.now();

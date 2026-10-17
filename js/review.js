@@ -1,6 +1,6 @@
 // Review screen: read through a workout (blocks, moves, timing, loads, cues, videos) before starting it.
 import { db } from './db.js';
-import { esc, state, typeLabel } from './ui.js';
+import { esc, state, typeLabel, starButton, wireStars } from './ui.js';
 import { CARDIO, LOADS, LOAD_KEYS, HIIT_LOAD_TIP, estimateSeconds, resolveItem, parseBell, bellShort } from './engine.js';
 
 export async function renderReview(root, id) {
@@ -27,7 +27,7 @@ export async function renderReview(root, id) {
 
   root.innerHTML = `
   <div class="spread"><a class="btn sm" href="#/">← Workouts</a><span class="chip">${esc(typeLabel(w.type))}</span></div>
-  <h1 style="font-size:28px">${esc(w.name)}</h1>
+  <div class="spread" style="flex-wrap:nowrap"><h1 style="font-size:28px">${esc(w.name)}</h1>${starButton(w.id)}</div>
   <div class="row small muted"><span>${len}</span><span>·</span><span>${moves.length} moves</span><span>·</span><span>${w.blocks.length} block${w.blocks.length === 1 ? '' : 's'}</span>
     ${w.type === 'amrap' ? '<span>·</span><span>As many rounds as possible</span>' : ''}</div>
   <div class="row"><a class="btn primary" href="#/play/${href}">▶ Start</a><a class="btn" href="#/edit/${href}">✎ Edit</a></div>
@@ -46,4 +46,5 @@ export async function renderReview(root, id) {
   </section>`).join('')}
   ${(w.links || []).length ? `<section class="card stack"><h2>Videos for this routine</h2><div class="links">${w.links.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">▶ ${esc(l.title)}</a>`).join('')}</div></section>` : ''}
   <div class="row"><a class="btn primary" href="#/play/${href}">▶ Start workout</a><a class="btn" href="#/edit/${href}">✎ Edit</a></div>`;
+  wireStars(root);
 }
