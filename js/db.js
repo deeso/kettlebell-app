@@ -1,5 +1,6 @@
 // Tiny IndexedDB wrapper. Stores: exercises, workouts, sessions, kv (settings).
 import { SEED } from './seed.js';
+import { DEFAULT_LOADS } from './engine.js';
 
 const DB_NAME = 'kettlebell-app';
 const DB_VERSION = 1;
@@ -49,7 +50,8 @@ export const uid = (p = 'id') => p + '-' + Date.now().toString(36) + Math.random
 export const DEFAULT_SETTINGS = {
   bells: SEED.bells,
   voice: true, beeps: true, beepVolume: 100,
-  countdown: 10, restAfterRound: 60,
+  countdown: 10, restAfterRound: 60, transition: 10,
+  loads: { ...DEFAULT_LOADS },
   cardio: { type: 'mix', len: 30 },
   keepAwake: true,
   units: 'lb',
@@ -57,7 +59,8 @@ export const DEFAULT_SETTINGS = {
 
 export async function getSettings() {
   const row = await db.get('kv', 'settings');
-  return Object.assign({}, DEFAULT_SETTINGS, row ? row.value : {});
+  const v = row ? row.value : {};
+  return Object.assign({}, DEFAULT_SETTINGS, v, { loads: { ...DEFAULT_LOADS, ...(v.loads || {}) } });
 }
 export async function saveSettings(value) { await db.put('kv', { key: 'settings', value }); }
 
@@ -69,6 +72,10 @@ export async function ensureSeed() {
   const [exs, wos] = await Promise.all([db.all('exercises'), db.all('workouts')]);
   const exIds = new Set(exs.map(e => e.id)), woById = new Map(wos.map(w => [w.id, w]));
   await db.putMany('exercises', SEED.exercises.filter(e => !exIds.has(e.id)).map(e => ({ ...e, builtIn: true })));
+  // Built-in exercises still on an exact weight move to the seed's load category (light, heavy, ...).
+  const seedEx = new Map(SEED.exercises.map(e => [e.id, e])), num = /^(2\s*[x×*]\s*)?\d+(\.\d+)?$/i;
+  const moved = exs.filter(e => e.builtIn && seedEx.has(e.id) && num.test(String(e.bell || '')) && !num.test(seedEx.get(e.id).bell || ''));
+  await db.putMany('exercises', moved.map(e => ({ ...e, bell: seedEx.get(e.id).bell })));
   // Add new built-in workouts, and refresh built-ins you have never edited (updatedAt still equals seededAt).
   const now = Date.now();
   const fresh = SEED.workouts.filter(w => { const old = woById.get(w.id); return !old || (old.builtIn && old.seededAt && old.updatedAt === old.seededAt); });

@@ -26,7 +26,7 @@ def phrases():
     p += [str(n) for n in range(1, 51)]
     p += ['Next.', 'each side.', 'each way.', 'Go!', 'Transition.', 'Rest.', 'Resume.', 'Paused.', 'Workout. Go!',
           'Time! Nice work.', 'One minute left. Finish strong.', '30 seconds.', '10 seconds. Get ready.', 'Rest over. Go!',
-          'Added 5 minutes.', 'Added 1 minute.', 'Removed 5 minutes.', 'Removed 1 minute.']
+          'Restart round.', 'Added 5 minutes.', 'Added 1 minute.', 'Removed 5 minutes.', 'Removed 1 minute.']
     p += [f'{n} seconds.' for n in list(range(5, 305, 5)) + [360, 420, 480, 540, 600]]
     p += [f'Rest, {n} seconds.' for n in list(range(5, 185, 5)) + [240, 300]]
     p += [f'Round {n} done.' for n in range(1, 41)]
@@ -37,6 +37,8 @@ def phrases():
             p.append(f'{L} seconds, {say}. Go!')
     bells = sorted(set(list(range(5, 105, 5)) + [8, 12, 18, 26, 53, 62, 70, 88]))
     p += [f'{b} pound bell.' for b in bells] + [f'two {b} pound bells.' for b in range(10, 80, 5)]
+    loads = ['light', 'medium', 'heavy', 'extra heavy']  # must match LOADS in js/engine.js
+    p += [f'{l} bell.' for l in loads] + [f'two {l} bells.' for l in loads]
     seen, out = set(), []
     for x in p:
         k = say_text(x)

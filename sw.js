@@ -1,9 +1,9 @@
 // Offline support. App files: stale-while-revalidate (instant start, updates arrive on the next launch).
 // Voice clips and fonts: cache-first (they never change for a given file name).
-const VERSION = 'v1.7.0';
+const VERSION = 'v1.8.0';
 const SHELL = `shell-${VERSION}`, MEDIA = 'media-v1';
 const SHELL_FILES = ['./', 'index.html', 'manifest.webmanifest', 'css/app.css',
-  'js/app.js', 'js/ui.js', 'js/db.js', 'js/seed.js', 'js/engine.js', 'js/audio.js', 'js/player.js', 'js/builder.js', 'js/library.js', 'js/history.js',
+  'js/app.js', 'js/ui.js', 'js/db.js', 'js/seed.js', 'js/engine.js', 'js/audio.js', 'js/player.js', 'js/builder.js', 'js/library.js', 'js/history.js', 'js/review.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'voice/index.json'];
 
 self.addEventListener('install', e => {

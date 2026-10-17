@@ -1,6 +1,6 @@
 import { db, uid } from './db.js';
 import { $, $$, esc, state, toast, confirmTap } from './ui.js';
-import { Runner, fmt, bellLabel } from './engine.js';
+import { Runner, fmt, bellLabel, bellShort } from './engine.js';
 import { beep, speak, unlockAudio, keepAwake, isAwake, setAudioSettings } from './audio.js';
 
 let runner = null, raf = 0, last = 0, el = null;
@@ -36,6 +36,7 @@ export async function renderPlayer(root, id) {
     <p class="cue" id="cue"></p>
     <div class="links" id="links"></div>
     <button class="big" id="primary" disabled>Press Start</button>
+    ${runner.type === 'emom' ? '' : `<div class="row" role="group" aria-label="Reset time" style="gap:6px"><button class="sm" id="rmove" title="Start this move's timer over">↺ Restart move</button><button class="sm" id="rround" title="Go back to the first move of this round">⟲ Restart round</button></div>`}
     <div class="spread small"><span class="muted">Then: <b id="next" style="color:var(--ink)"></b></span><span class="status" id="awake">Screen sleeps normally</span></div>
     <div class="row"><button class="primary" id="play" style="min-width:120px">Start</button><button id="undo">↶ Undo</button><button id="end" class="ghost">Finish</button>
       <label class="row small" style="gap:6px;margin-left:auto"><input type="checkbox" id="pvoice" ${state.settings.voice ? 'checked' : ''}> Voice</label></div>
@@ -53,6 +54,7 @@ export async function renderPlayer(root, id) {
   };
   $('#primary', root).onclick = () => runner.primary();
   $('#undo', root).onclick = () => runner.undo();
+  if ($('#rmove', root)) { $('#rmove', root).onclick = () => runner.restartMove(); $('#rround', root).onclick = () => runner.restartRound(); }
   $('#pvoice', root).onchange = e => setAudioSettings({ voice: e.target.checked });
   $$('[data-adj]', root).forEach(b => b.onclick = () => runner.adjustTime(+b.dataset.adj));
   confirmTap($('#end', root), 'Tap again to finish', () => { if (!runner.started) { location.hash = '#/'; return; } runner.finish(); });
@@ -101,7 +103,7 @@ function paint() {
   $('#exname', el).textContent = (['rest', 'trans', 'emomrest'].includes(r.phase) ? 'Up next: ' : '') + (show.name || '');
   $('#cue', el).textContent = r.phase === 'rest' ? 'Breathe, shake it out, sip water.' : (show.cue || '');
   $('#reps', el).textContent = r.phase === 'move' || r.phase === 'ready' ? (c.reps || '') : $('#reps', el).textContent;
-  const bl = $('#bell', el); const bb = show.bell; bl.hidden = !bb; if (bb) bl.textContent = bellLabel(bb);
+  const bl = $('#bell', el); const bb = show.bell; bl.hidden = !bb; if (bb) bl.textContent = bellLabel(bb, state.settings.loads);
   const q = encodeURIComponent((show.q || show.name || 'kettlebell'));
   $('#links', el).innerHTML = show.name ? `<a href="https://www.youtube.com/results?search_query=${q}+form+tutorial" target="_blank" rel="noopener">▶ Watch demo</a><a href="https://www.google.com/search?tbm=isch&q=${q}+exercise+diagram" target="_blank" rel="noopener">◧ See diagram</a>` : '';
   $('#next', el).textContent = n ? `${n.reps} ${n.name}` : 'Finish';
@@ -133,7 +135,7 @@ function paintPlan() {
       const btn = document.createElement('button'); btn.type = 'button';
       btn.innerHTML = `<span class="t">${i + 1}</span><span class="n"></span><span class="r"></span>`;
       btn.querySelector('.n').textContent = rc ? rc.name : '';
-      if (rc && rc.bell) btn.querySelector('.n').insertAdjacentHTML('beforeend', `<span class="bk">${esc(String(rc.bell))}#</span>`);
+      if (rc && rc.bell) btn.querySelector('.n').insertAdjacentHTML('beforeend', `<span class="bk">${esc(bellShort(rc.bell, state.settings.loads))}</span>`);
       btn.querySelector('.r').textContent = rc ? (rc.kind === 'cardio' ? '⚡ ' : '') + rc.reps : '';
       btn.disabled = !(bi === r.bi);
       btn.onclick = () => { if (bi === r.bi) r.jumpTo(i); };

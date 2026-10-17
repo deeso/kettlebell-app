@@ -1,11 +1,12 @@
 import { db, ensureSeed, uid, exportAll, importAll, exportWorkout, DEFAULT_SETTINGS } from './db.js';
 import { $, $$, esc, state, loadState, updateSettings, toast, confirmTap, download, shareOrDownload, pickFile, typeLabel, dateLabel, ICONS } from './ui.js';
-import { estimateSeconds, fmt } from './engine.js';
+import { estimateSeconds, fmt, LOADS, LOAD_KEYS, HIIT_LOAD_TIP } from './engine.js';
 import { setAudioSettings } from './audio.js';
 import { renderPlayer, leavePlayer } from './player.js';
 import { renderBuilder } from './builder.js';
 import { renderLibrary } from './library.js';
 import { renderHistory, renderSession } from './history.js';
+import { renderReview } from './review.js';
 import { SEED } from './seed.js';
 
 const main = $('main');
@@ -23,6 +24,7 @@ async function route() {
   document.body.classList.toggle('playing', view === 'play');
   window.scrollTo(0, 0);
   if (view === 'play') return renderPlayer(main, decodeURIComponent(id));
+  if (view === 'review') { renderTabs('workouts'); return renderReview(main, decodeURIComponent(id)); }
   if (view === 'edit') { renderTabs('workouts'); return renderBuilder(main, id ? decodeURIComponent(id) : null); }
   if (view === 'library') { renderTabs('library'); return renderLibrary(main, id); }
   if (view === 'history') { renderTabs('history'); return id ? renderSession(main, decodeURIComponent(id)) : renderHistory(main); }
@@ -42,10 +44,10 @@ async function renderWorkouts(el) {
     const len = w.type === 'rounds' ? '~' + Math.round(estimateSeconds(w, state.settings.cardio.len) / 60) + ' min' : Math.round(w.durationSec / 60) + ' min';
     const last = lastBy.get(w.id);
     return `<article class="card wcard">
-      <div class="spread"><div class="title">${esc(w.name)}</div><span class="chip">${typeLabel(w.type)}</span></div>
+      <div class="spread"><a class="title" href="#/review/${encodeURIComponent(w.id)}" style="color:inherit;text-decoration:none">${esc(w.name)}</a><span class="chip">${typeLabel(w.type)}</span></div>
       <div class="meta"><span>${len}</span><span>·</span><span>${moves.length} moves</span>${last ? `<span>·</span><span>Last: ${esc(dateLabel(last.endedAt))}${last.score ? ' · ' + esc(last.score) : ''}</span>` : ''}</div>
       <div class="moves">${esc([...new Set(names)].join(', '))}</div>
-      <div class="row"><a class="btn primary" href="#/play/${encodeURIComponent(w.id)}">▶ Start</a><a class="btn" href="#/edit/${encodeURIComponent(w.id)}">✎ Edit</a>
+      <div class="row"><a class="btn primary" href="#/play/${encodeURIComponent(w.id)}">▶ Start</a><a class="btn" href="#/review/${encodeURIComponent(w.id)}">☰ Review</a><a class="btn" href="#/edit/${encodeURIComponent(w.id)}">✎ Edit</a>
       <button class="sm ghost" data-dup="${esc(w.id)}">Duplicate</button><button class="sm ghost" data-share="${esc(w.id)}">Share</button></div>
     </article>`;
   };
@@ -78,11 +80,17 @@ async function renderSettings(el) {
     <label class="field">Beep volume <input type="range" id="st-vol" min="10" max="100" value="${s.beepVolume}"></label>
     <p class="small muted">Sounds play alongside your music without pausing it.</p>
   </section>
+  <section class="card stack"><h2>Load presets</h2>
+    <p class="small muted" style="margin:0">Workouts say <b>light</b>, <b>medium</b>, <b>heavy</b> or <b>extra heavy</b> instead of exact weights. Pick the bell each one means for you, and every workout updates to match.</p>
+    <div class="loadgrid">${LOAD_KEYS.map(k => `<label class="field">${LOADS[k].label}<select data-load="${k}">${[...new Set([...(s.bells || []), +s.loads[k]])].sort((a, b) => a - b).map(b => `<option value="${b}" ${+s.loads[k] === +b ? 'selected' : ''}>${b} lb</option>`).join('')}</select><span class="small">${LOADS[k].guide}</span></label>`).join('')}</div>
+    <p class="small muted" style="margin:0">${HIIT_LOAD_TIP} Add or remove bells in <a href="#/library/bells">Library → Bells</a>.</p>
+  </section>
   <section class="card stack"><h2>Defaults for new workouts</h2>
     <div class="grid2">
       <label class="field">Countdown beeps<select id="st-cd">${[5, 10, 15].map(n => `<option value="${n}" ${s.countdown == n ? 'selected' : ''}>Last ${n} s</option>`).join('')}</select></label>
       <label class="field">Rest after each round<select id="st-rest">${[0, 30, 45, 60, 90, 120].map(n => `<option value="${n}" ${s.restAfterRound == n ? 'selected' : ''}>${n ? n + ' s' : 'None'}</option>`).join('')}</select></label>
       <label class="field">Cardio type<select id="st-ct">${[['mix', 'Mix (rotate)'], ['rope', 'Jump rope'], ['feet', 'Fast feet'], ['hops', 'Side-to-side hops']].map(([v, l]) => `<option value="${v}" ${s.cardio.type === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="field">Transition between moves<select id="st-tr">${[0, 5, 10, 15, 20, 30].map(n => `<option value="${n}" ${(s.transition ?? 10) == n ? 'selected' : ''}>${n ? n + ' s' : 'None'}</option>`).join('')}</select></label>
       <label class="field">Cardio length<select id="st-cl">${[20, 30, 45, 60].map(n => `<option value="${n}" ${s.cardio.len == n ? 'selected' : ''}>${n} s</option>`).join('')}</select></label>
     </div>
     <label class="row"><input type="checkbox" id="st-awake" ${s.keepAwake ? 'checked' : ''}> Keep screen on during workouts</label>
@@ -101,7 +109,8 @@ async function renderSettings(el) {
   $('#upd', el).onclick = () => checkForUpdates($('#upd', el), $('#updst', el));
   const save = async () => {
     await updateSettings({ voice: $('#st-voice').checked, beeps: $('#st-beeps').checked, beepVolume: +$('#st-vol').value,
-      countdown: +$('#st-cd').value, restAfterRound: +$('#st-rest').value, cardio: { type: $('#st-ct').value, len: +$('#st-cl').value }, keepAwake: $('#st-awake').checked });
+      countdown: +$('#st-cd').value, restAfterRound: +$('#st-rest').value, cardio: { type: $('#st-ct').value, len: +$('#st-cl').value }, keepAwake: $('#st-awake').checked, transition: +$('#st-tr').value,
+      loads: Object.fromEntries($$('[data-load]', el).map(x => [x.dataset.load, +x.value])) });
     setAudioSettings(state.settings); toast('Saved');
   };
   $$('input,select', el).forEach(i => i.addEventListener('change', save));
