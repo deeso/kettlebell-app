@@ -18,6 +18,10 @@ G = {  # primary demands: grip, pull (lats/biceps), push (chest/triceps/front de
  'kb-clean-and-press': {'overhead', 'push', 'hinge'}, 'burpees': {'push', 'plyo', 'squat'},
  'mountain-climbers': {'push', 'core', 'hipflex'}, 'squat-jumps': {'squat', 'plyo'}, 'push-ups': {'push'},
  'cool-down-stretches': set(),
+ 'kb-goblet-squat': {'squat'}, 'kb-dead-bug': {'core', 'hipflex'}, 'side-plank-hip-dips': {'core'}, 'russian-twists': {'core'},
+ 'single-leg-deadlifts': {'hinge'}, 'plank-kb-pull-through': {'core', 'push'}, 'kettlebell-glute-bridges': {'hinge'},
+ 'hollow-body-hold': {'core', 'hipflex'}, 'suitcase-deadlifts': {'hinge', 'grip', 'core'}, 'glute-bridge': {'hinge'}, 'bird-dog': {'core'},
+ 'high-knees': {'plyo', 'hipflex'},
 }
 CARDIO = {'plyo'}
 INTENTIONAL = {  # (a, b): why the overlap is worth it
