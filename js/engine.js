@@ -36,18 +36,19 @@ export function bellPhrase(b) {
   if (p.cat) return p.n === 2 ? `two ${LOADS[p.cat].say} bells.` : `${LOADS[p.cat].say} bell.`;
   return p.n === 2 ? `two ${p.lb} pound bells.` : `${p.lb} pound bell.`;
 }
-export function bellLabel(b, loads) { // "Heavy bell · 45 lb", "2× Heavy bells · 45 lb each", "35 lb bell"
+export function bellLabel(b, loads) { // "Heavy bell", "2× Heavy bells", "35 lb bell" (categories never show pounds)
   const p = parseBell(b, loads); if (!p) return '';
-  if (p.cat) return p.n === 2 ? `2× ${LOADS[p.cat].label} bells · ${p.lb} lb each` : `${LOADS[p.cat].label} bell · ${p.lb} lb`;
+  if (p.cat) return p.n === 2 ? `2× ${LOADS[p.cat].label} bells` : `${LOADS[p.cat].label} bell`;
   return p.n === 2 ? `2×${p.lb} lb bells` : `${p.lb} lb bell`;
 }
-export function bellShort(b, loads) { // compact badge: "Heavy 45", "2× Light 30", "35#"
+export function bellShort(b, loads) { // compact badge: "Heavy", "2× Light", "35#"
   const p = parseBell(b, loads); if (!p) return '';
-  return p.cat ? `${p.n === 2 ? '2× ' : ''}${LOADS[p.cat].label} ${p.lb}` : `${p.n === 2 ? '2×' : ''}${p.lb}#`;
+  return p.cat ? `${p.n === 2 ? '2× ' : ''}${LOADS[p.cat].label}` : `${p.n === 2 ? '2×' : ''}${p.lb}#`;
 }
 export function bellLoad(b, loads) { // total pounds moved per rep
   const p = parseBell(b, loads); return p ? p.n * p.lb : 0;
 }
+export const targetText = t => { t = String(t || '').trim(); return !t ? '' : /^\d+\s*\(/.test(t) ? t.replace(/^(\d+)\s*/, '$1 reps ') : /^\d+$/.test(t) ? t + ' reps' : t; }; // '16 (8 / side)' -> '16 reps (8 / side)'
 export function repCount(reps) { // numeric reps per set, doubling "/ side" and "each way"
   const n = /(\d+)/.exec(reps || ''); if (!n) return 0;
   return +n[1] * (/side|way/i.test(reps) ? 2 : 1);
@@ -64,7 +65,7 @@ export function resolveItem(it, exMap, cardioKey, cardioLen, defTrans = 10) {
   const work = +it.work || 40, trans = it.trans == null || it.trans === '' ? +defTrans : +it.trans;
   const bell = it.bell != null && it.bell !== '' ? it.bell : (ex.bell || '');
   return { kind: 'move', exId: it.exId, name: ex.name, vname: ex.vname || ex.name.toLowerCase(), cue: ex.cue || '', q: ex.q || ex.name,
-    timed, work, trans: timed ? trans : 0, reps: timed ? fmt(work) + (trans ? ` +${trans}s` : '') : (it.reps || ex.reps || '10'), repsRaw: it.reps || ex.reps || '', bell };
+    timed, work, trans: timed ? trans : 0, reps: timed ? fmt(work) + (trans ? ` +${trans}s` : '') : (it.reps || ex.reps || '10'), repsRaw: it.reps || ex.reps || '', bell, target: timed ? String(it.target || '').trim() : '' };
 }
 
 export function moveSeq(c, withNext) {
@@ -73,8 +74,10 @@ export function moveSeq(c, withNext) {
   if (c.timed) out.push(`${c.work} seconds.`);
   else { const n = /(\d+)/.exec(c.repsRaw || c.reps || ''); if (n) out.push(n[1]); }
   out.push(c.vname.trim() + '.');
+  const tg = c.timed && /(\d+)/.exec(c.target || '');
   if (!c.timed) { if (/side/i.test(c.repsRaw)) out.push('each side.'); else if (/way/i.test(c.repsRaw)) out.push('each way.'); }
   const bp = bellPhrase(c.bell); if (bp) out.push(bp);
+  if (tg) out.push(`Aim for ${tg[1]}.`);
   return out;
 }
 
@@ -215,7 +218,7 @@ export class Runner {
   completeMove() {
     const c = this.current(); if (!c || c.kind === 'cardio') return;
     this.movesDone++;
-    this.log.push({ exId: c.exId, name: c.name, timed: c.timed, work: c.timed ? c.work : 0, reps: c.timed ? '' : c.repsRaw, bell: c.bell, bellText: bellLabel(c.bell, this.loads), lb: bellLoad(c.bell, this.loads), round: this.type === 'rounds' ? `${this.bi + 1}.${this.ri + 1}` : String(this.roundsDone + 1), t: Math.round(this.elapsed) });
+    this.log.push({ exId: c.exId, name: c.name, timed: c.timed, work: c.timed ? c.work : 0, reps: c.timed ? '' : c.repsRaw, bell: c.bell, bellText: bellLabel(c.bell, this.loads), target: c.target || '', lb: bellLoad(c.bell, this.loads), round: this.type === 'rounds' ? `${this.bi + 1}.${this.ri + 1}` : String(this.roundsDone + 1), t: Math.round(this.elapsed) });
   }
 
   advance(auto, quiet) {

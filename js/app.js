@@ -9,7 +9,7 @@ import { renderHistory, renderSession } from './history.js';
 import { renderReview } from './review.js';
 import { SEED } from './seed.js';
 
-const BUILD = '1.9.0'; // keep in step with APP_VERSION in index.html, VERSION in sw.js and "app" in js/seed.js
+const BUILD = '1.10.0'; // keep in step with APP_VERSION in index.html, VERSION in sw.js and "app" in js/seed.js
 const main = $('main');
 const TABS = [['#/', 'Workouts', 'workouts'], ['#/library', 'Library', 'library'], ['#/history', 'History', 'history'], ['#/settings', 'Settings', 'settings']];
 
@@ -106,9 +106,9 @@ async function renderSettings(el) {
     <p class="small muted">Sounds play alongside your music without pausing it.</p>
   </section>
   <section class="card stack"><h2>Load presets</h2>
-    <p class="small muted" style="margin:0">Workouts say <b>light</b>, <b>medium</b>, <b>heavy</b> or <b>extra heavy</b> instead of exact weights. Pick the bell each one means for you, and every workout updates to match.</p>
-    <div class="loadgrid">${LOAD_KEYS.map(k => `<label class="field">${LOADS[k].label}<select data-load="${k}">${[...new Set([...(s.bells || []), +s.loads[k]])].sort((a, b) => a - b).map(b => `<option value="${b}" ${+s.loads[k] === +b ? 'selected' : ''}>${b} lb</option>`).join('')}</select><span class="small">${LOADS[k].guide}</span></label>`).join('')}</div>
-    <p class="small muted" style="margin:0">${HIIT_LOAD_TIP} Add or remove bells in <a href="#/library/bells">Library → Bells</a>.</p>
+    <p class="small muted" style="margin:0">Workouts say <b>light</b>, <b>medium</b>, <b>heavy</b> or <b>extra heavy</b> instead of exact weights. Pick the weight each one means for you (5 to 100 lb), and every workout updates to match.</p>
+    <div class="loadgrid">${LOAD_KEYS.map(k => `<label class="field">${LOADS[k].label}<select data-load="${k}">${[...new Set([...Array.from({ length: 20 }, (_, i) => 5 * (i + 1)), +s.loads[k]])].sort((a, b) => a - b).map(b => `<option value="${b}" ${+s.loads[k] === +b ? 'selected' : ''}>${b} lb</option>`).join('')}</select><span class="small">${LOADS[k].guide}</span></label>`).join('')}</div>
+    <p class="small muted" style="margin:0">${HIIT_LOAD_TIP}</p>
   </section>
   <section class="card stack"><h2>Defaults for new workouts</h2>
     <div class="grid2">
