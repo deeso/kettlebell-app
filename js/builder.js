@@ -1,6 +1,6 @@
 import { db, uid } from './db.js';
 import { $, $$, esc, state, loadState, toast, confirmTap, shareOrDownload } from './ui.js';
-import { estimateSeconds, fmt } from './engine.js';
+import { estimateSeconds, fmt, LOAD_KEYS, LOADS, bellLabel } from './engine.js';
 import { exportWorkout } from './db.js';
 
 function newWorkout() {
@@ -20,10 +20,8 @@ export async function renderBuilder(root, id) {
     if (rerender) paint();
   };
 
-  const bellOpts = () => {
-    const b = state.settings.bells || [];
-    return [...b.map(String), ...b.map(x => '2x' + x)];
-  };
+  const bellOpts = () => [...LOAD_KEYS.map(k => [k, LOADS[k].label]), ...LOAD_KEYS.map(k => ['2x ' + k, '2× ' + LOADS[k].label])];
+  const defTrans = () => state.settings.transition ?? 10;
 
   function itemRow(it, bi, ii, n) {
     const items = w.blocks[bi].items;
@@ -35,9 +33,9 @@ export async function renderBuilder(root, id) {
       <select class="exsel" aria-label="Exercise">${ex ? '' : '<option value="">(missing exercise)</option>'}${state.exercises.map(e => `<option value="${esc(e.id)}" ${e.id === it.exId ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}</select>
       <div class="sub"><span class="seg" role="group" aria-label="Count by"><button type="button" data-mode="reps" aria-pressed="${!isT}">Reps</button><button type="button" data-mode="time" aria-pressed="${isT}">Time</button></span>
         ${isT ? `<label>Work s <input class="n" type="number" inputmode="numeric" min="5" max="600" step="5" data-f="work" value="${esc(it.work || 40)}"></label>
-                 <label>Transition s <input class="n" type="number" inputmode="numeric" min="0" max="180" step="5" data-f="trans" value="${esc(it.trans ?? 10)}"></label>`
+                 <label>Transition s <input class="n" type="number" inputmode="numeric" min="0" max="180" step="5" data-f="trans" value="${esc(it.trans ?? defTrans())}"></label>`
               : `<label>Reps <input data-f="reps" value="${esc(it.reps || '')}" placeholder="10, 8 / side"></label>`}
-        <label>Bell lb <input data-f="bell" list="belllist" value="${esc(it.bell || '')}" placeholder="${esc(ex && ex.bell ? ex.bell : 'none')}"></label></div></div>${acts}</div>`;
+        <label>Load <select data-f="bell" aria-label="Load"><option value="">${esc(ex && ex.bell ? 'Default (' + bellLabel(ex.bell, state.settings.loads) + ')' : 'None')}</option>${bellOpts().map(([v, l]) => `<option value="${esc(v)}" ${String(it.bell || '').toLowerCase() === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}${it.bell && !bellOpts().some(([v]) => v === String(it.bell).toLowerCase()) ? `<option value="${esc(it.bell)}" selected>${esc(bellLabel(it.bell, state.settings.loads))}</option>` : ''}</select></label></div></div>${acts}</div>`;
   }
 
   function paint() {
@@ -66,13 +64,14 @@ export async function renderBuilder(root, id) {
       </div>
       <div>${b.items.map((it, ii) => itemRow(it, bi, ii, ++n)).join('') || '<p class="small muted">No moves yet. Add one below.</p>'}</div>
       <div class="row"><input class="addname" list="exlist" placeholder="Add exercise: type or pick" style="flex:1;min-width:180px"><button class="sm primary" data-add="move">Add</button><button class="sm" data-add="cardio">+ ⚡ Cardio</button></div>
-      <div class="row small"><button class="sm ghost" data-all="time">All → Time</button><button class="sm ghost" data-all="reps">All → Reps</button></div>
+      <div class="row small"><button class="sm ghost" data-all="time">All → Time</button><button class="sm ghost" data-all="reps">All → Reps</button>
+        <label class="row" style="gap:6px">Transition <input class="n alltrans" type="number" inputmode="numeric" min="0" max="180" step="5" value="${defTrans()}" style="width:72px" aria-label="Transition seconds for every timed move"> s</label><button class="sm ghost" data-alltrans>Apply to timed moves</button></div>
     </section>`).join('')}
     ${isRounds ? '<button id="addblock">+ Add block</button>' : ''}
     <label class="field">Notes<textarea id="wnotes" placeholder="Anything to remember about this workout">${esc(w.notes || '')}</textarea></label>
-    <div class="row"><a class="btn primary" href="#/play/${encodeURIComponent(w.id)}">▶ Start workout</a><button id="share">Share file</button><button id="delw" class="danger ghost">Delete workout</button></div>
+    <div class="row"><a class="btn primary" href="#/play/${encodeURIComponent(w.id)}">▶ Start workout</a><a class="btn" href="#/review/${encodeURIComponent(w.id)}">☰ Review</a><button id="share">Share file</button><button id="delw" class="danger ghost">Delete workout</button></div>
     <datalist id="exlist">${state.exercises.map(e => `<option value="${esc(e.name)}">`).join('')}</datalist>
-    <datalist id="belllist">${bellOpts().map(b => `<option value="${esc(b)}">`).join('')}</datalist>`;
+`;
     wire();
   }
 
@@ -102,24 +101,27 @@ export async function renderBuilder(root, id) {
         const name = $('.addname', sec).value.trim(); if (!name) { $('.addname', sec).focus(); return; }
         let ex = state.exercises.find(e => e.name.toLowerCase() === name.toLowerCase());
         if (!ex) {
-          ex = { id: uid('ex'), name, vname: name.toLowerCase(), cue: '', q: name, bell: '', mode: 'reps', reps: '10', work: 40, trans: 10, tags: [] };
+          ex = { id: uid('ex'), name, vname: name.toLowerCase(), cue: '', q: name, bell: '', mode: 'reps', reps: '10', work: 40, trans: defTrans(), tags: [] };
           await db.put('exercises', ex); await loadState(); toast('Added "' + name + '" to your library');
         }
-        b.items.push({ kind: 'move', exId: ex.id, mode: ex.mode || 'reps', reps: ex.reps || '10', work: ex.work || 40, trans: ex.trans ?? 10, bell: ex.bell || '' });
+        b.items.push({ kind: 'move', exId: ex.id, mode: ex.mode || 'reps', reps: ex.reps || '10', work: ex.work || 40, trans: defTrans(), bell: ex.bell || '' });
         save();
       };
       $('.addname', sec).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('[data-add="move"]', sec).click(); } });
       $('[data-add="cardio"]', sec).onclick = () => { b.items.push({ kind: 'cardio' }); save(); };
-      $$('[data-all]', sec).forEach(btn => btn.onclick = () => { b.items.forEach(it => { if (it.kind === 'move') { it.mode = btn.dataset.all; it.work = it.work || 40; it.trans = it.trans ?? 10; } }); save(); });
+      $$('[data-all]', sec).forEach(btn => btn.onclick = () => { b.items.forEach(it => { if (it.kind === 'move') { it.mode = btn.dataset.all; it.work = it.work || 40; it.trans = it.trans ?? defTrans(); } }); save(); });
+      $('[data-alltrans]', sec).onclick = () => {
+        const v = Math.max(0, Math.min(180, +$('.alltrans', sec).value || 0));
+        b.items.forEach(it => { if (it.kind === 'move' && it.mode === 'time') it.trans = v; }); toast(`Transition set to ${v} s`); save();
+      };
     });
     $$('.item', root).forEach(row => {
       const bi = +row.dataset.bi, ii = +row.dataset.ii, items = w.blocks[bi].items, it = items[ii];
       const sel = $('.exsel', row); if (sel) sel.onchange = () => { it.exId = sel.value; const ex = state.exMap.get(sel.value); if (ex && !it.bell) it.bell = ex.bell || ''; save(); };
-      $$('[data-mode]', row).forEach(b => b.onclick = () => { it.mode = b.dataset.mode; it.work = it.work || 40; it.trans = it.trans ?? 10; save(); });
+      $$('[data-mode]', row).forEach(b => b.onclick = () => { it.mode = b.dataset.mode; it.work = it.work || 40; it.trans = it.trans ?? defTrans(); save(); });
       $$('[data-f]', row).forEach(inp => inp.onchange = () => {
         const f = inp.dataset.f; let v = inp.value.trim();
         if (f === 'work') v = Math.max(5, Math.min(600, +v || 40)); if (f === 'trans') v = Math.max(0, Math.min(180, +v || 0));
-        if (f === 'bell') v = v.replace(/\s*(lb|lbs|#)$/i, '');
         it[f] = v; save(f === 'work' || f === 'trans');
       });
       $$('[data-act]', row).forEach(b => {

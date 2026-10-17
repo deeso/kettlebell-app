@@ -90,7 +90,7 @@ export async function renderSession(root, id) {
     <div class="row"><button id="save" class="primary sm">Save notes</button><button id="del" class="danger ghost sm">Delete session</button></div>
   </section>
   <section class="stack"><h2>What you did</h2>${rows.length ? `<div class="tablewrap"><table class="log"><thead><tr><th>Round</th><th>Exercise</th><th>Reps / time</th><th>Bell</th><th>At</th></tr></thead><tbody>
-    ${rows.map(l => `<tr><td>${esc(l.round)}</td><td>${esc(l.name)}</td><td>${l.timed ? l.work + ' s' : esc(l.reps)}</td><td>${esc(l.bell || '')}</td><td class="num">${fmt(l.t)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No moves were logged.</p>'}</section>`;
+    ${rows.map(l => `<tr><td>${esc(l.round)}</td><td>${esc(l.name)}</td><td>${l.timed ? l.work + ' s' : esc(l.reps)}</td><td>${esc(l.bellText || l.bell || '')}</td><td class="num">${fmt(l.t)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No moves were logged.</p>'}</section>`;
   $('#rpe', root).oninput = e => { $('#rpev', root).textContent = e.target.value; };
   $('#save', root).onclick = async () => { s.rpe = +$('#rpe', root).value; s.notes = $('#notes', root).value.trim(); await db.put('sessions', s); toast('Saved'); };
   confirmTap($('#del', root), 'Tap again to delete', async () => { await db.del('sessions', s.id); toast('Deleted'); location.hash = '#/history'; });

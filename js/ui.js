@@ -12,6 +12,19 @@ export async function loadState() {
   state.exercises = (await db.all('exercises')).sort((a, b) => a.name.localeCompare(b.name));
   state.exMap = new Map(state.exercises.map(e => [e.id, e]));
 }
+export const isStarred = id => (state.settings.starred || []).includes(id);
+export async function toggleStar(id) {
+  const s = new Set(state.settings.starred || []); s.has(id) ? s.delete(id) : s.add(id);
+  await updateSettings({ starred: [...s] }); return s.has(id);
+}
+export const starButton = id => `<button type="button" class="star sm ghost" data-star="${esc(id)}" aria-pressed="${isStarred(id)}" aria-label="${isStarred(id) ? 'Unstar' : 'Star'} workout" title="${isStarred(id) ? 'Unstar' : 'Star'}">${isStarred(id) ? '★' : '☆'}</button>`;
+export function wireStars(root, after) {
+  root.querySelectorAll('[data-star]').forEach(b => b.onclick = async () => {
+    const on = await toggleStar(b.dataset.star);
+    b.textContent = on ? '★' : '☆'; b.setAttribute('aria-pressed', on); b.setAttribute('aria-label', (on ? 'Unstar' : 'Star') + ' workout'); b.title = on ? 'Unstar' : 'Star';
+    toast(on ? 'Starred' : 'Unstarred'); if (after) after();
+  });
+}
 export async function updateSettings(patch) {
   state.settings = Object.assign({}, state.settings, patch);
   await saveSettings(state.settings);

@@ -30,6 +30,11 @@ G = {  # primary demands: grip, pull (lats/biceps), push (chest/triceps/front de
  'v-ups': {'core', 'hipflex'}, 'floor-press': {'push'}, 'gorilla-rows': {'pull', 'grip'}, 'high-pulls': {'pull', 'hinge', 'grip'},
  'bear-crawl': {'push', 'core'}, 'kettlebell-deadlifts': {'hinge', 'grip'}, 'double-rack-squats': {'squat', 'core'},
  'cossack-squats': {'squat'}, 'kettlebell-halo': {'overhead', 'core'},
+ 'hammer-curls': {'grip', 'pull'}, 'kettlebell-thrusters': {'squat', 'overhead', 'push'}, 'plank-jacks': {'push', 'core'},
+ 'tabata-swings': {'hinge', 'grip'}, 'clean-squat-press': {'hinge', 'squat', 'overhead', 'push', 'grip'},
+ 'press-to-snatch': {'overhead', 'push', 'hinge', 'grip'}, 'reverse-lunge-halo': {'squat', 'overhead', 'core'},
+ 'overhead-triceps-extensions': {'push', 'overhead'}, 'bottoms-up-curls': {'grip', 'pull'}, 'sprawls': {'push', 'plyo'},
+ 'lateral-shuffle': {'plyo'}, 'star-jumps': {'plyo', 'squat'},
 }
 CARDIO = {'plyo'}
 INTENTIONAL = {  # (a, b): why the overlap is worth it

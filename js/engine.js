@@ -11,19 +11,42 @@ const CARDIO_KEYS = ['rope', 'feet', 'hops'];
 
 export const fmt = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 
+// Load categories. Workouts say "heavy" instead of a weight; Settings maps each category to one of your bells.
+export const LOAD_KEYS = ['light', 'medium', 'heavy', 'xheavy'];
+export const LOADS = {
+  light: { label: 'Light', say: 'light', guide: '20+ fast, clean reps. Curls, triceps extensions, halos, bottoms-up work and warm-ups.' },
+  medium: { label: 'Medium', say: 'medium', guide: '12 to 15 crisp reps. Presses, thrusters, flows, lunges, twists and snatches.' },
+  heavy: { label: 'Heavy', say: 'heavy', guide: '8 to 10 strong reps. Swings, goblet squats, rows, cleans and floor press.' },
+  xheavy: { label: 'Extra heavy', say: 'extra heavy', guide: '5 or 6 hard reps. Deadlifts, heavy swings, glute bridges and carries.' },
+};
+export const DEFAULT_LOADS = { light: 30, medium: 35, heavy: 45, xheavy: 60 };
+export const HIIT_LOAD_TIP = 'For timed intervals, choose a bell you can keep moving for the whole work period with good form. If your form breaks before the beep, go down one category next round.';
+
+// '45', '2x45', 'heavy', '2x heavy', 'extra heavy' -> { n: bells, cat, lb: pounds per bell }
+export function parseBell(b, loads = DEFAULT_LOADS) {
+  let s = String(b || '').trim().toLowerCase().replace(/\s*(lb|lbs|#)$/, ''); if (!s) return null;
+  let n = 1; const m2 = /^2\s*[x×*]\s*(.+)$/.exec(s); if (m2) { n = 2; s = m2[1].trim(); }
+  const cat = { light: 'light', l: 'light', medium: 'medium', med: 'medium', m: 'medium', heavy: 'heavy', h: 'heavy',
+    xheavy: 'xheavy', 'x-heavy': 'xheavy', 'extra heavy': 'xheavy', 'extra-heavy': 'xheavy', xh: 'xheavy' }[s];
+  if (cat) return { n, cat, lb: +((loads || DEFAULT_LOADS)[cat] || DEFAULT_LOADS[cat]) };
+  const m1 = /(\d+(?:\.\d+)?)/.exec(s); return m1 ? { n, cat: null, lb: +m1[1] } : null;
+}
 export function bellPhrase(b) {
-  b = String(b || '').trim(); if (!b) return '';
-  const m2 = /^2\s*[x×*]\s*(\d+(?:\.\d+)?)/i.exec(b); if (m2) return `two ${m2[1]} pound bells.`;
-  const m1 = /(\d+(?:\.\d+)?)/.exec(b); return m1 ? `${m1[1]} pound bell.` : '';
+  const p = parseBell(b); if (!p) return '';
+  if (p.cat) return p.n === 2 ? `two ${LOADS[p.cat].say} bells.` : `${LOADS[p.cat].say} bell.`;
+  return p.n === 2 ? `two ${p.lb} pound bells.` : `${p.lb} pound bell.`;
 }
-export function bellLabel(b) {
-  b = String(b || '').trim(); if (!b) return '';
-  return /^2\s*[x×*]/i.test(b) ? b.replace(/^2\s*[x*]/i, '2×') + ' lb bells' : b.replace(/\s*(lb|lbs|#)$/i, '') + ' lb bell';
+export function bellLabel(b, loads) { // "Heavy bell · 45 lb", "2× Heavy bells · 45 lb each", "35 lb bell"
+  const p = parseBell(b, loads); if (!p) return '';
+  if (p.cat) return p.n === 2 ? `2× ${LOADS[p.cat].label} bells · ${p.lb} lb each` : `${LOADS[p.cat].label} bell · ${p.lb} lb`;
+  return p.n === 2 ? `2×${p.lb} lb bells` : `${p.lb} lb bell`;
 }
-export function bellLoad(b) { // total pounds moved per rep
-  b = String(b || '').trim(); if (!b) return 0;
-  const m2 = /^2\s*[x×*]\s*(\d+(?:\.\d+)?)/i.exec(b); if (m2) return 2 * +m2[1];
-  const m1 = /(\d+(?:\.\d+)?)/.exec(b); return m1 ? +m1[1] : 0;
+export function bellShort(b, loads) { // compact badge: "Heavy 45", "2× Light 30", "35#"
+  const p = parseBell(b, loads); if (!p) return '';
+  return p.cat ? `${p.n === 2 ? '2× ' : ''}${LOADS[p.cat].label} ${p.lb}` : `${p.n === 2 ? '2×' : ''}${p.lb}#`;
+}
+export function bellLoad(b, loads) { // total pounds moved per rep
+  const p = parseBell(b, loads); return p ? p.n * p.lb : 0;
 }
 export function repCount(reps) { // numeric reps per set, doubling "/ side" and "each way"
   const n = /(\d+)/.exec(reps || ''); if (!n) return 0;
@@ -31,14 +54,14 @@ export function repCount(reps) { // numeric reps per set, doubling "/ side" and 
 }
 
 // Resolve a workout item against the exercise library.
-export function resolveItem(it, exMap, cardioKey, cardioLen) {
+export function resolveItem(it, exMap, cardioKey, cardioLen, defTrans = 10) {
   if (it.kind === 'cardio') {
     const d = CARDIO[cardioKey] || CARDIO.rope;
     return { kind: 'cardio', name: d.name, vname: d.say, cue: d.cue, q: d.q, timed: true, work: cardioLen, trans: 0, bell: '', reps: fmt(cardioLen), cardioKey };
   }
   const ex = exMap.get(it.exId) || { name: it.name || 'Exercise', vname: (it.name || 'exercise').toLowerCase(), cue: '', q: it.name || 'kettlebell' };
   const timed = it.mode === 'time';
-  const work = +it.work || 40, trans = it.trans == null ? 10 : +it.trans;
+  const work = +it.work || 40, trans = it.trans == null || it.trans === '' ? +defTrans : +it.trans;
   const bell = it.bell != null && it.bell !== '' ? it.bell : (ex.bell || '');
   return { kind: 'move', exId: it.exId, name: ex.name, vname: ex.vname || ex.name.toLowerCase(), cue: ex.cue || '', q: ex.q || ex.name,
     timed, work, trans: timed ? trans : 0, reps: timed ? fmt(work) + (trans ? ` +${trans}s` : '') : (it.reps || ex.reps || '10'), repsRaw: it.reps || ex.reps || '', bell };
@@ -74,6 +97,7 @@ export class Runner {
     this.cardioType = (workout.cardio && workout.cardio.type) || settings.cardio.type || 'mix';
     this.cardioLen = +((workout.cardio && workout.cardio.len) || settings.cardio.len || 30);
     this.countdown = +(workout.countdown || settings.countdown || 10);
+    this.defTrans = settings.transition ?? 10; this.loads = settings.loads || DEFAULT_LOADS;
     // AMRAP and EMOM treat all blocks as one circuit.
     this.flat = this.type === 'rounds' ? null : workout.blocks.flatMap(b => b.items);
     this.total = this.type === 'rounds' ? estimateSeconds(workout, this.cardioLen) : (+workout.durationSec || 1800);
@@ -97,7 +121,7 @@ export class Runner {
   current() { return this.resolveAt(this.ii, this.cardioSlot); }
   resolveAt(ii, slot) {
     const its = this.items(); const it = its[ii]; if (!it) return null;
-    return resolveItem(it, this.exMap, this.cardioKeyAt(slot), this.cardioLen);
+    return resolveItem(it, this.exMap, this.cardioKeyAt(slot), this.cardioLen, this.defTrans);
   }
   peekNext() {
     const its = this.items();
@@ -107,7 +131,7 @@ export class Runner {
     if (this.type === 'rounds') {
       if (this.ri + 1 < this.roundsInBlock()) return this.resolveAt(0, slot);
       const nb = this.w.blocks[this.bi + 1]; if (!nb) return null;
-      const it = nb.items[0]; return it ? resolveItem(it, this.exMap, this.cardioKeyAt(slot), this.cardioLen) : null;
+      const it = nb.items[0]; return it ? resolveItem(it, this.exMap, this.cardioKeyAt(slot), this.cardioLen, this.defTrans) : null;
     }
     return this.resolveAt(0, slot);
   }
@@ -154,6 +178,25 @@ export class Runner {
     if (this.phase === 'emomrest') return;
     this.completeMove(); this.advance(false);
   }
+  // Restart the current move's timer, or go back to the first move of this round (both can be undone).
+  restartMove() {
+    if (!this.started || this.finished || this.type === 'emom') return;
+    this.snapshot();
+    if ((this.phase === 'trans' || this.phase === 'rest') && this.phaseMax) this.phaseLeft = this.phaseMax;
+    else this.enter(this.running);
+    this.h.change();
+  }
+  restartRound() {
+    if (!this.started || this.finished || this.type === 'emom') return;
+    this.snapshot();
+    const its = this.items(), round = this.type === 'rounds' ? `${this.bi + 1}.${this.ri + 1}` : String(this.roundsDone + 1);
+    if (this.phase === 'rest') { this.history.pop(); return this.restartMove(); }
+    this.cardioSlot -= its.slice(0, this.ii).filter(x => x.kind === 'cardio').length;
+    while (this.log.length && this.log[this.log.length - 1].round === round) { this.log.pop(); this.movesDone--; }
+    this.ii = 0; this.enter(false);
+    if (this.running) this.h.speak(['Restart round.'].concat(moveSeq(this.current())));
+    this.h.change();
+  }
   jumpTo(ii) { this.snapshot(); this.ii = Math.max(0, Math.min(this.items().length - 1, ii)); if (this.running) this.enter(true); this.h.change(); }
 
   // ---- flow ----
@@ -172,7 +215,7 @@ export class Runner {
   completeMove() {
     const c = this.current(); if (!c || c.kind === 'cardio') return;
     this.movesDone++;
-    this.log.push({ exId: c.exId, name: c.name, timed: c.timed, work: c.timed ? c.work : 0, reps: c.timed ? '' : c.repsRaw, bell: c.bell, round: this.type === 'rounds' ? `${this.bi + 1}.${this.ri + 1}` : String(this.roundsDone + 1), t: Math.round(this.elapsed) });
+    this.log.push({ exId: c.exId, name: c.name, timed: c.timed, work: c.timed ? c.work : 0, reps: c.timed ? '' : c.repsRaw, bell: c.bell, bellText: bellLabel(c.bell, this.loads), lb: bellLoad(c.bell, this.loads), round: this.type === 'rounds' ? `${this.bi + 1}.${this.ri + 1}` : String(this.roundsDone + 1), t: Math.round(this.elapsed) });
   }
 
   advance(auto, quiet) {
@@ -222,7 +265,7 @@ export class Runner {
   summary() {
     let reps = 0, volume = 0, timedSec = 0;
     for (const l of this.log) {
-      if (l.timed) timedSec += l.work; else { const n = repCount(l.reps); reps += n; volume += n * bellLoad(l.bell); }
+      if (l.timed) timedSec += l.work; else { const n = repCount(l.reps); reps += n; volume += n * (l.lb ?? bellLoad(l.bell, this.loads)); }
     }
     return {
       workoutId: this.w.id, workoutName: this.w.name, type: this.type,
@@ -263,6 +306,8 @@ export class Runner {
       }
     }
     if (this.phaseLeft > 0 && ['work', 'cardio', 'trans', 'rest'].includes(this.phase)) {
+      const key = [this.phase, this.bi, this.ri, this.ii].join('.');
+      if (key !== this.phaseKey) { this.phaseKey = key; this.phaseMax = this.phaseLeft; }
       const before = Math.ceil(this.phaseLeft); this.phaseLeft -= dt; const after = Math.ceil(this.phaseLeft);
       if (after !== before && after > 0) {
         const len = this.phase === 'trans' ? Math.min(3, this.countdown) : this.phase === 'rest' ? this.countdown : Math.min(this.countdown, Math.max(1, Math.floor((this.current() || {}).work / 2 || 5)));
