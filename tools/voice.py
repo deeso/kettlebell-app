@@ -30,6 +30,7 @@ def phrases():
     p += [f'{n} seconds.' for n in list(range(5, 305, 5)) + [360, 420, 480, 540, 600]]
     p += [f'Rest, {n} seconds.' for n in list(range(5, 185, 5)) + [240, 300]]
     p += [f'Round {n} done.' for n in range(1, 41)]
+    p += [f'Aim for {n}.' for n in range(1, 81)]
     p += [f'{n} minutes left.' for n in range(5, 120, 5)]
     p += [f'{n} minute AMRAP. Go!' for n in range(5, 125, 5)] + [f'{n} minute EMOM. Go!' for n in range(5, 125, 5)]
     for L in (20, 30, 45, 60):

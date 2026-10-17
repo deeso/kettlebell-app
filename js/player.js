@@ -1,6 +1,6 @@
 import { db, uid } from './db.js';
 import { $, $$, esc, state, toast, confirmTap } from './ui.js';
-import { Runner, fmt, bellLabel, bellShort } from './engine.js';
+import { Runner, fmt, bellLabel, bellShort, targetText } from './engine.js';
 import { beep, speak, unlockAudio, keepAwake, isAwake, setAudioSettings } from './audio.js';
 
 let runner = null, raf = 0, last = 0, el = null;
@@ -32,7 +32,7 @@ export async function renderPlayer(root, id) {
     <div class="clock" id="clock"></div>
     ${timed ? `<div class="row" role="group" aria-label="Adjust time" style="flex-wrap:nowrap;gap:6px"><button class="sm" data-adj="-300" aria-label="Remove 5 minutes">−5</button><button class="sm" data-adj="-60" aria-label="Remove 1 minute">−1</button><span class="small muted" id="tot" style="flex:1;text-align:center;white-space:nowrap"></span><button class="sm" data-adj="60" aria-label="Add 1 minute">+1</button><button class="sm" data-adj="300" aria-label="Add 5 minutes">+5</button></div>` : `<div class="small muted" id="tot"></div>`}
     <div class="bar"><i id="fill"></i></div>
-    <div><div class="repsbig" id="reps"></div><h2 class="exname" id="exname"></h2></div>
+    <div><div class="repsbig" id="reps"></div><h2 class="exname" id="exname"></h2><div class="target" id="target" hidden></div></div>
     <p class="cue" id="cue"></p>
     <div class="links" id="links"></div>
     <button class="big" id="primary" disabled>Press Start</button>
@@ -106,7 +106,8 @@ function paint() {
   const bl = $('#bell', el); const bb = show.bell; bl.hidden = !bb; if (bb) bl.textContent = bellLabel(bb, state.settings.loads);
   const q = encodeURIComponent((show.q || show.name || 'kettlebell'));
   $('#links', el).innerHTML = show.name ? `<a href="https://www.youtube.com/results?search_query=${q}+form+tutorial" target="_blank" rel="noopener">▶ Watch demo</a><a href="https://www.google.com/search?tbm=isch&q=${q}+exercise+diagram" target="_blank" rel="noopener">◧ See diagram</a>` : '';
-  $('#next', el).textContent = n ? `${n.reps} ${n.name}` : 'Finish';
+  const tg = $('#target', el); tg.hidden = !show.target; if (show.target) tg.textContent = 'Target: ' + targetText(show.target);
+  $('#next', el).textContent = n ? `${n.reps} ${n.name}${n.target ? ` · aim ${n.target.replace(/ \(.*\)/, '')}` : ''}` : 'Finish';
   const labels = { ready: 'Ready', move: r.type === 'emom' ? 'EMOM' : 'Go', work: 'Work', cardio: 'Cardio', trans: 'Transition', rest: 'Rest', emomrest: 'Rest', done: 'Finished' };
   ph.textContent = r.running || r.finished ? labels[r.phase] : (r.started ? 'Paused' : 'Ready');
   ph.className = 'chip ' + (['rest', 'trans', 'emomrest', 'done', 'ready'].includes(r.phase) || !r.running ? 'rest' : 'work');
@@ -136,7 +137,7 @@ function paintPlan() {
       btn.innerHTML = `<span class="t">${i + 1}</span><span class="n"></span><span class="r"></span>`;
       btn.querySelector('.n').textContent = rc ? rc.name : '';
       if (rc && rc.bell) btn.querySelector('.n').insertAdjacentHTML('beforeend', `<span class="bk">${esc(bellShort(rc.bell, state.settings.loads))}</span>`);
-      btn.querySelector('.r').textContent = rc ? (rc.kind === 'cardio' ? '⚡ ' : '') + rc.reps : '';
+      btn.querySelector('.r').textContent = rc ? (rc.kind === 'cardio' ? '⚡ ' : '') + rc.reps + (rc.target ? ` · ${rc.target.replace(/ \(.*\)/, '')}` : '') : '';
       btn.disabled = !(bi === r.bi);
       btn.onclick = () => { if (bi === r.bi) r.jumpTo(i); };
       li.appendChild(btn); ul.appendChild(li);

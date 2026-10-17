@@ -142,3 +142,4 @@ table.log td.num{text-align:right;font-variant-numeric:tabular-nums}
 .loadgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 button.star{font-size:22px;line-height:1;padding:4px 8px;min-height:36px;min-width:40px;color:var(--muted)}
 button.star[aria-pressed="true"]{color:var(--work)}
+.target{display:inline-block;margin-top:6px;font:700 15px/1.2 var(--body);padding:4px 10px;border-radius:8px;background:var(--soft);font-variant-numeric:tabular-nums}

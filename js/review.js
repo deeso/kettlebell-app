@@ -1,7 +1,7 @@
 // Review screen: read through a workout (blocks, moves, timing, loads, cues, videos) before starting it.
 import { db } from './db.js';
 import { esc, state, typeLabel, starButton, wireStars } from './ui.js';
-import { CARDIO, LOADS, LOAD_KEYS, HIIT_LOAD_TIP, estimateSeconds, resolveItem, parseBell, bellShort } from './engine.js';
+import { targetText, CARDIO, LOADS, LOAD_KEYS, HIIT_LOAD_TIP, estimateSeconds, resolveItem, parseBell, bellShort } from './engine.js';
 
 export async function renderReview(root, id) {
   const w = await db.get('workouts', id);
@@ -17,7 +17,7 @@ export async function renderReview(root, id) {
     return c;
   }));
   const href = encodeURIComponent(w.id);
-  const detail = c => c.timed ? `${c.work} s work${c.trans ? ` · ${c.trans} s transition` : ''}` : `${esc(c.repsRaw || c.reps)} reps`;
+  const detail = c => c.timed ? `${c.work} s work${c.target ? ` · target ${esc(targetText(c.target))}` : ''}${c.trans ? ` · ${c.trans} s transition` : ''}` : `${esc(c.repsRaw || c.reps)} reps`;
   const blockHead = b => {
     const r = Math.max(1, +b.rounds || 1);
     if (w.type !== 'rounds') return 'Circuit';
