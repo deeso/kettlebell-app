@@ -35,6 +35,8 @@ G = {  # primary demands: grip, pull (lats/biceps), push (chest/triceps/front de
  'press-to-snatch': {'overhead', 'push', 'hinge', 'grip'}, 'reverse-lunge-halo': {'squat', 'overhead', 'core'},
  'overhead-triceps-extensions': {'push', 'overhead'}, 'bottoms-up-curls': {'grip', 'pull'}, 'sprawls': {'push', 'plyo'},
  'lateral-shuffle': {'plyo'}, 'star-jumps': {'plyo', 'squat'},
+ 'rdl-lunge-rotation': {'hinge', 'squat'}, 'row-pull-through': {'pull', 'core'}, 'double-rack-squat-press': {'squat', 'overhead', 'push'},
+ 'swing-high-pull': {'hinge', 'pull', 'grip'}, 'box-step-up-press': {'squat', 'overhead', 'push'}, 'lateral-lunge-halo': {'squat', 'overhead', 'core'}, 'sprawl-skaters': {'push', 'plyo'},
 }
 CARDIO = {'plyo'}
 INTENTIONAL = {  # (a, b): why the overlap is worth it
