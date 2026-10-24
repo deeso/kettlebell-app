@@ -1842,6 +1842,24 @@ export const SEED = {
     "cardio",
     "plyo"
    ]
+  },
+  {
+   "id": "box-step-up-press",
+   "name": "Box step-up to press",
+   "vname": "box step-up into press",
+   "cue": "Bell in the front rack on the same side as the working leg. Plant the whole foot on the box, drive through that heel and stand tall, then press the bell overhead at the top. Lower to the rack and step down with control. Don't push off the back foot.",
+   "q": "kettlebell box step up to press",
+   "bell": "medium",
+   "mode": "reps",
+   "reps": "5 / side",
+   "work": 40,
+   "trans": 10,
+   "tags": [
+    "complex",
+    "legs",
+    "push",
+    "box"
+   ]
   }
  ],
  "workouts": [
@@ -5745,6 +5763,312 @@ export const SEED = {
     "functional",
     "full body",
     "ladder"
+   ]
+  },
+  {
+   "id": "complex-rep-ladder",
+   "name": "Complex Rep Ladder",
+   "type": "rounds",
+   "durationSec": 0,
+   "countdown": 10,
+   "cardio": {
+    "type": "mix",
+    "len": 30
+   },
+   "notes": "The rep version of Complex Ladder, all with one medium bell. Six complexes, each chaining two or three patterns without setting the bell down. No clock on the moves: do the reps, tap Done, go straight into the next one, and rest only after each round. The ladder climbs from sixes to eights to tens. The box steps down as the reps go up: 36 inch side for sixes, 30 for eights, 24 for tens, so the highest step comes while you are fresh. Moves alternate lower, upper and cardio so no area works twice in a row. If the 36 is too tall to step onto without pushing off the back foot, use the 30.",
+   "links": [
+    {
+     "title": "Kettlebell complexes explained",
+     "url": "https://www.youtube.com/results?search_query=kettlebell+complex+workout"
+    },
+    {
+     "title": "Box step-up to press",
+     "url": "https://www.youtube.com/results?search_query=kettlebell+step+up+to+press"
+    },
+    {
+     "title": "RDL to reverse lunge with rotation",
+     "url": "https://www.youtube.com/results?search_query=kettlebell+rdl+reverse+lunge+rotation"
+    },
+    {
+     "title": "Kettlebell high pull",
+     "url": "https://www.youtube.com/results?search_query=kettlebell+high+pull+form"
+    }
+   ],
+   "blocks": [
+    {
+     "name": "Warm-up",
+     "rounds": 1,
+     "restAfterRound": 0,
+     "items": [
+      {
+       "kind": "move",
+       "exId": "jumping-jacks",
+       "mode": "time",
+       "reps": "",
+       "work": 40,
+       "trans": 10,
+       "bell": "",
+       "target": "40"
+      },
+      {
+       "kind": "move",
+       "exId": "kettlebell-halo",
+       "mode": "time",
+       "reps": "",
+       "work": 30,
+       "trans": 10,
+       "bell": "light",
+       "target": "4 (2 / side)"
+      },
+      {
+       "kind": "move",
+       "exId": "inchworm-walk-outs",
+       "mode": "time",
+       "reps": "",
+       "work": 30,
+       "trans": 10,
+       "bell": "",
+       "target": "4"
+      },
+      {
+       "kind": "move",
+       "exId": "goblet-squat-pry",
+       "mode": "time",
+       "reps": "",
+       "work": 30,
+       "trans": 10,
+       "bell": "light"
+      },
+      {
+       "kind": "move",
+       "exId": "glute-bridge",
+       "mode": "time",
+       "reps": "",
+       "work": 30,
+       "trans": 10,
+       "bell": "",
+       "target": "12"
+      },
+      {
+       "kind": "move",
+       "exId": "lateral-shuffle",
+       "mode": "time",
+       "reps": "",
+       "work": 30,
+       "trans": 10,
+       "bell": "",
+       "target": "6"
+      }
+     ]
+    },
+    {
+     "name": "Sixes, 36 inch box",
+     "rounds": 2,
+     "restAfterRound": 60,
+     "items": [
+      {
+       "kind": "move",
+       "exId": "rdl-lunge-rotation",
+       "mode": "reps",
+       "reps": "3 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "row-pull-through",
+       "mode": "reps",
+       "reps": "3 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "box-step-up-press",
+       "mode": "reps",
+       "reps": "3 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "swing-high-pull",
+       "mode": "reps",
+       "reps": "3 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "lateral-lunge-halo",
+       "mode": "reps",
+       "reps": "3 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "sprawl-skaters",
+       "mode": "reps",
+       "reps": "6",
+       "work": 40,
+       "trans": 10,
+       "bell": ""
+      }
+     ]
+    },
+    {
+     "name": "Eights, 30 inch box",
+     "rounds": 2,
+     "restAfterRound": 60,
+     "items": [
+      {
+       "kind": "move",
+       "exId": "rdl-lunge-rotation",
+       "mode": "reps",
+       "reps": "4 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "row-pull-through",
+       "mode": "reps",
+       "reps": "4 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "box-step-up-press",
+       "mode": "reps",
+       "reps": "4 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "swing-high-pull",
+       "mode": "reps",
+       "reps": "4 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "lateral-lunge-halo",
+       "mode": "reps",
+       "reps": "4 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "sprawl-skaters",
+       "mode": "reps",
+       "reps": "8",
+       "work": 40,
+       "trans": 10,
+       "bell": ""
+      }
+     ]
+    },
+    {
+     "name": "Tens, 24 inch box",
+     "rounds": 2,
+     "restAfterRound": 90,
+     "items": [
+      {
+       "kind": "move",
+       "exId": "rdl-lunge-rotation",
+       "mode": "reps",
+       "reps": "5 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "row-pull-through",
+       "mode": "reps",
+       "reps": "5 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "box-step-up-press",
+       "mode": "reps",
+       "reps": "5 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "swing-high-pull",
+       "mode": "reps",
+       "reps": "5 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "lateral-lunge-halo",
+       "mode": "reps",
+       "reps": "5 / side",
+       "work": 40,
+       "trans": 10,
+       "bell": "medium"
+      },
+      {
+       "kind": "move",
+       "exId": "sprawl-skaters",
+       "mode": "reps",
+       "reps": "10",
+       "work": 40,
+       "trans": 10,
+       "bell": ""
+      }
+     ]
+    },
+    {
+     "name": "Cool-down",
+     "rounds": 1,
+     "restAfterRound": 0,
+     "items": [
+      {
+       "kind": "move",
+       "exId": "cool-down-stretches",
+       "mode": "time",
+       "reps": "",
+       "work": 120,
+       "trans": 0,
+       "bell": ""
+      }
+     ]
+    }
+   ],
+   "tags": [
+    "complex",
+    "functional",
+    "full body",
+    "ladder",
+    "reps",
+    "box",
+    "medium"
    ]
   }
  ]
