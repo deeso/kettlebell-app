@@ -40,6 +40,7 @@ G = {  # primary demands: grip, pull (lats/biceps), push (chest/triceps/front de
  'bw-reverse-lunges': {'squat'}, 'reverse-lunge-right-back': {'squat'}, 'reverse-lunge-left-back': {'squat'},
  'double-floor-press': {'push'}, 'single-leg-deadlift-right': {'hinge'}, 'single-leg-deadlift-left': {'hinge'},
  'hand-to-hand-swings': {'hinge', 'grip'}, 'thruster-push-up-ladder': {'squat', 'overhead', 'push'},
+ 'lunge-swing': {'squat', 'hinge', 'grip'}, 'lunge-chop': {'squat', 'core'},
  'slot-lower': {'squat', 'hinge'}, 'slot-upper': {'push', 'pull', 'overhead'}, 'slot-core': {'core'}, 'slot-full-body': {'hinge', 'squat', 'overhead', 'grip'}, 'lateral-lunge-halo': {'squat', 'overhead', 'core'}, 'sprawl-skaters': {'push', 'plyo'},
 }
 CARDIO = {'plyo'}

@@ -1994,7 +1994,7 @@ export const SEED = {
    "id": "slot-lower",
    "name": "Lower body (your pick)",
    "vname": "lower body move",
-   "cue": "Pick one. Reps: goblet squats, double rack squats, Romanian deadlifts, reverse lunges, single-leg deadlifts, Cossack squats, box step-up to press. HIIT: kettlebell swings, goblet squats, lateral lunges, squat jumps (no bell).",
+   "cue": "Pick one. Reps: goblet squats, double rack squats, Romanian deadlifts, reverse lunges, single-leg deadlifts, Cossack squats, box step-up to press, lunge chops. HIIT: kettlebell swings, goblet squats, lateral lunges, lunge to swing, squat jumps (no bell).",
    "q": "kettlebell lower body exercises",
    "bell": "heavy",
    "mode": "reps",
@@ -2027,7 +2027,7 @@ export const SEED = {
    "id": "slot-core",
    "name": "Core (your pick)",
    "vname": "core move",
-   "cue": "Pick one. Reps: half get-ups, plank pull-throughs, KB dead bugs, suitcase march, Russian twists. HIIT: halos, Russian twists, V-ups, hollow rocks, plank pull-throughs. Ribs down, slow and controlled.",
+   "cue": "Pick one. Reps: half get-ups, plank pull-throughs, KB dead bugs, suitcase march, Russian twists, lunge chops. HIIT: halos, Russian twists, lunge chops, V-ups, hollow rocks, plank pull-throughs. Ribs down, slow and controlled.",
    "q": "kettlebell core exercises",
    "bell": "light",
    "mode": "reps",
@@ -2043,7 +2043,7 @@ export const SEED = {
    "id": "slot-full-body",
    "name": "Full body (your pick)",
    "vname": "full body move",
-   "cue": "Pick one fast, total-body move: kettlebell swings, thrusters, clean squat press, single-arm snatches, or burpees (no bell). Power from the hips, keep moving the whole interval.",
+   "cue": "Pick one fast, total-body move: kettlebell swings, thrusters, clean squat press, single-arm snatches, lunge to swing, or burpees (no bell). Power from the hips, keep moving the whole interval.",
    "q": "kettlebell full body hiit exercises",
    "bell": "heavy",
    "mode": "reps",
@@ -2054,6 +2054,41 @@ export const SEED = {
     "template",
     "power",
     "cardio"
+   ]
+  },
+  {
+   "id": "lunge-swing",
+   "name": "Lunge to swing",
+   "vname": "lunge into swing",
+   "cue": "Bell in both hands, hanging at arm's length. Step back into a reverse lunge, back knee to the floor, and stand. Then hike the bell back and snap one two-hand swing to chest height. Alternate legs each rep.",
+   "q": "kettlebell reverse lunge to swing",
+   "bell": "medium",
+   "mode": "reps",
+   "reps": "5 / side",
+   "work": 40,
+   "trans": 20,
+   "tags": [
+    "complex",
+    "legs",
+    "hinge",
+    "power"
+   ]
+  },
+  {
+   "id": "lunge-chop",
+   "name": "Lunge chop",
+   "vname": "lunge chops",
+   "cue": "Hold the bell by the horns at one shoulder. Step back into a reverse lunge and chop it diagonally down and across to the outside of the front hip, turning from the ribs. Bring it back to the shoulder as you stand. Chop toward the front leg; alternate legs and sides.",
+   "q": "kettlebell reverse lunge chop",
+   "bell": "light",
+   "mode": "reps",
+   "reps": "5 / side",
+   "work": 40,
+   "trans": 20,
+   "tags": [
+    "legs",
+    "core",
+    "rotation"
    ]
   }
  ],
