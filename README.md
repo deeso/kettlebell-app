@@ -46,7 +46,7 @@ No build step: it's plain ES modules, so you can edit and push. GitHub Pages ser
 ## Updating
 
 - After changing files, bump `VERSION` in `sw.js` (and `APP_VERSION` in `index.html`) so phones pick up the new version on the next launch.
-- New exercise names need recorded voice: run `python tools/voice.py --model kokoro.onnx --voices voices.bin` (see the script header). Until then the phone's built-in voice is used for those names.
+- New exercise names need recorded voice: run `python tools/voice.py --model kokoro.onnx --voices voices.bin` (see the script header). Until then the phone's built-in voice is used for those names. `node tools/audit_voice.mjs` lists any phrase a built-in workout would speak that has no recording.
 
 ## Run locally
 
