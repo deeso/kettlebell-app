@@ -65,11 +65,12 @@ export function resolveItem(it, exMap, cardioKey, cardioLen, defTrans = 10) {
   const work = +it.work || 40, trans = it.trans == null || it.trans === '' ? +defTrans : +it.trans;
   const bell = it.bell != null && it.bell !== '' ? it.bell : (ex.bell || '');
   return { kind: 'move', exId: it.exId, name: ex.name, vname: ex.vname || ex.name.toLowerCase(), cue: ex.cue || '', q: ex.q || ex.name,
-    timed, work, trans: timed ? trans : 0, reps: timed ? fmt(work) + (trans ? ` +${trans}s` : '') : (it.reps || ex.reps || '10'), repsRaw: it.reps || ex.reps || '', bell, target: timed ? String(it.target || '').trim() : '' };
+    timed, work, trans: timed ? trans : 0, reps: ex.rest ? 'Rest' : timed ? fmt(work) + (trans ? ` +${trans}s` : '') : (it.reps || ex.reps || '10'), repsRaw: it.reps || ex.reps || '', bell: ex.rest ? '' : bell, target: timed ? String(it.target || '').trim() : '', isRest: !!ex.rest };
 }
 
 export function moveSeq(c, withNext) {
   if (c.kind === 'cardio') return [`${c.work} seconds, ${c.vname}. Go!`];
+  if (c.isRest) return withNext ? ['Next.', 'Rest.'] : ['Rest.'];
   const out = []; if (withNext) out.push('Next.');
   if (c.timed) out.push(`${c.work} seconds.`);
   else { const n = /(\d+)/.exec(c.repsRaw || c.reps || ''); if (n) out.push(n[1]); }
@@ -205,7 +206,8 @@ export class Runner {
   // ---- flow ----
   enter(announce, delay = 0) {
     const c = this.current(); if (!c) return;
-    if (this.type === 'emom') {
+    if (this.type === 'emom' && c.isRest) { this.phase = 'emomrest'; this.phaseLeft = 0; }  // a rest minute: nothing to do until the next minute
+    else if (this.type === 'emom') {
       this.phase = c.timed ? (c.kind === 'cardio' ? 'cardio' : 'work') : 'move';
       this.phaseLeft = c.timed ? Math.min(c.work, Math.max(5, 60 - (this.elapsed % 60))) : 0;
     } else {
@@ -216,7 +218,7 @@ export class Runner {
   }
 
   completeMove() {
-    const c = this.current(); if (!c || c.kind === 'cardio') return;
+    const c = this.current(); if (!c || c.kind === 'cardio' || c.isRest) return;
     this.movesDone++;
     this.log.push({ exId: c.exId, name: c.name, timed: c.timed, work: c.timed ? c.work : 0, reps: c.timed ? '' : c.repsRaw, bell: c.bell, bellText: bellLabel(c.bell, this.loads), target: c.target || '', lb: bellLoad(c.bell, this.loads), round: this.type === 'rounds' ? `${this.bi + 1}.${this.ri + 1}` : String(this.roundsDone + 1), t: Math.round(this.elapsed) });
   }
@@ -284,14 +286,15 @@ export class Runner {
   tick(dt) {
     if (!this.running || this.finished) return;
     this.elapsed += dt;
+    const callout = []; // time calls made this tick; an EMOM minute change says them first
     if (this.type !== 'rounds') {
       const prev = Math.ceil(this.left); this.left -= dt; const w = Math.ceil(this.left);
       if (w !== prev) {
         if (w > 0 && w <= this.countdown) this.h.beep('count', w, this.countdown);
         const m = w / 60;
-        if (Number.isInteger(m) && m > 0 && m % 5 === 0 && w < this.total - 5 && !this.said.has(m)) { this.said.add(m); this.h.speak([`${m} minutes left.`]); }
-        if (w === 60 && !this.said.has('1m')) { this.said.add('1m'); this.h.speak(['One minute left. Finish strong.']); }
-        if (w === 30 && !this.said.has('30s')) { this.said.add('30s'); this.h.speak(['30 seconds.']); }
+        if (Number.isInteger(m) && m > 0 && m % 5 === 0 && w < this.total - 5 && !this.said.has(m)) { this.said.add(m); callout.push(`${m} minutes left.`); }
+        if (w === 60 && !this.said.has('1m')) { this.said.add('1m'); callout.push('One minute left. Finish strong.'); }
+        if (w === 30 && !this.said.has('30s')) { this.said.add('30s'); callout.push('30 seconds.'); }
       }
       if (this.left <= 0) { this.finish(); return; }
     }
@@ -305,9 +308,10 @@ export class Runner {
         if (this.phase === 'work') this.completeMove();
         if (this.items()[this.ii] && this.items()[this.ii].kind === 'cardio') this.cardioSlot++;
         this.minute = minNow; this.ii = minNow % this.items().length; this.h.beep('switch');
-        this.enter(false); this.h.speak(moveSeq(this.current(), false)); this.h.change(); return;
+        this.enter(false); this.h.speak(callout.concat(moveSeq(this.current(), false))); this.h.change(); return;
       }
     }
+    if (callout.length) this.h.speak(callout);
     if (this.phaseLeft > 0 && ['work', 'cardio', 'trans', 'rest'].includes(this.phase)) {
       const key = [this.phase, this.bi, this.ri, this.ii].join('.');
       if (key !== this.phaseKey) { this.phaseKey = key; this.phaseMax = this.phaseLeft; }
