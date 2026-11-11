@@ -3,10 +3,10 @@ import { $, $$, esc, state, toast, confirmTap } from './ui.js';
 import { Runner, fmt, bellLabel, bellShort, targetText } from './engine.js';
 import { beep, speak, unlockAudio, keepAwake, isAwake, setAudioSettings } from './audio.js';
 
-let runner = null, raf = 0, last = 0, el = null;
+let runner = null, raf = 0, iv = 0, last = 0, el = null, catchingUp = false;
 
 export function leavePlayer() {
-  cancelAnimationFrame(raf); raf = 0;
+  cancelAnimationFrame(raf); raf = 0; clearInterval(iv); iv = 0;
   if (runner && runner.running) runner.running = false;
   runner = null; keepAwake(false);
 }
@@ -17,8 +17,8 @@ export async function renderPlayer(root, id) {
   if (!w) { root.innerHTML = '<div class="empty">That workout no longer exists. <a href="#/">Back to workouts</a></div>'; return; }
   setAudioSettings(state.settings);
   runner = new Runner(w, state.exMap, state.settings, {
-    speak: (parts, delay) => speak(parts, delay),
-    beep: (k, n, N) => beep(k, n, N),
+    speak: (parts, delay) => { if (!catchingUp) speak(parts, delay); },
+    beep: (k, n, N) => { if (!catchingUp) beep(k, n, N); },
     change: () => paint(),
     finish: s => showSummary(s),
   });
@@ -68,16 +68,23 @@ export async function renderPlayer(root, id) {
   paint();
 }
 
-function loop() {
-  cancelAnimationFrame(raf);
-  const step = now => {
-    if (!runner) return;
-    const dt = Math.min(1, (now - last) / 1000); last = now;
-    runner.tick(dt); paintClock();
-    if (runner && runner.running) raf = requestAnimationFrame(step);
-  };
-  raf = requestAnimationFrame(step);
+// The clock follows real time. Screen redraws pause when the screen dims, locks or another
+// app is in front, so a 1-second timer keeps it going and any gap is caught up in small steps.
+function pump() {
+  if (!runner || !runner.running) return;
+  const now = performance.now(); let dt = (now - last) / 1000; last = now;
+  catchingUp = dt > 3; // a long gap: replay it silently instead of firing every beep and call at once
+  while (dt > 0 && runner && runner.running) { const step = Math.min(dt, 0.25); runner.tick(step); dt -= step; }
+  if (catchingUp) { catchingUp = false; paint(); }
+  paintClock();
 }
+function loop() {
+  cancelAnimationFrame(raf); clearInterval(iv);
+  const step = () => { pump(); if (runner && runner.running) raf = requestAnimationFrame(step); else clearInterval(iv); };
+  raf = requestAnimationFrame(step);
+  iv = setInterval(pump, 1000);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && runner && runner.running) loop(); });
 
 function paintClock() {
   if (!runner || !el) return;
@@ -91,6 +98,8 @@ function paintClock() {
     $('#phase', el).textContent = `${lbl} ${Math.ceil(r.phaseLeft)}s`;
   } else if (r.phase === 'emomrest') {
     const leftInMin = 60 - (r.elapsed % 60); $('#reps', el).textContent = fmt(leftInMin); $('#phase', el).textContent = `Rest ${Math.ceil(leftInMin)}s`;
+  } else if (r.type === 'emom' && r.phase === 'move' && r.started) { // reps minute: count down to the next minute while you work
+    $('#phase', el).textContent = `Minute ${r.minute + 1} · ${Math.ceil(60 - (r.elapsed % 60))}s left`;
   }
 }
 
@@ -146,7 +155,7 @@ function paintPlan() {
 }
 
 function showSummary(s) {
-  keepAwake(false); cancelAnimationFrame(raf);
+  keepAwake(false); cancelAnimationFrame(raf); clearInterval(iv);
   const sheet = document.createElement('div'); sheet.className = 'sheet';
   sheet.innerHTML = `<div class="panel" role="dialog" aria-label="Workout summary">
     <h2>Nice work</h2>
