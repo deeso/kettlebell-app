@@ -9,7 +9,6 @@ import { renderHistory, renderSession } from './history.js';
 import { renderReview } from './review.js';
 import { SEED } from './seed.js';
 
-const BUILD = '1.10.0'; // keep in step with APP_VERSION in index.html, VERSION in sw.js and "app" in js/seed.js
 const main = $('main');
 const TABS = [['#/', 'Workouts', 'workouts'], ['#/library', 'Library', 'library'], ['#/history', 'History', 'history'], ['#/settings', 'Settings', 'settings']];
 
@@ -195,9 +194,9 @@ async function checkForUpdates(btn, statusEl) {
 
 // ---------------- boot ----------------
 (async function boot() {
-  // index.html, app.js and seed.js must come from the same version; if not, fetch fresh copies once.
-  if (window.APP_VERSION !== BUILD || SEED.app !== BUILD) {
-    let tried = true; try { tried = !!sessionStorage.getItem('fixedMix'); sessionStorage.setItem('fixedMix', '1'); } catch (e) { }
+  // index.html and seed.js must come from the same version (tools/bump_version.py sets both); if not, fetch fresh copies once.
+  if (SEED.app && window.APP_VERSION !== SEED.app && navigator.onLine) {
+    let tried = true; try { tried = sessionStorage.getItem('fixedMix') === window.APP_VERSION; sessionStorage.setItem('fixedMix', window.APP_VERSION); } catch (e) { }
     if (!tried) return hardReload();
   }
   try { await ensureSeed(); await loadState(); }

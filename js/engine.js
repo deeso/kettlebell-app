@@ -305,7 +305,7 @@ export class Runner {
         this.said.add('m' + minNow + '-' + Math.ceil(60 - intoMin)); this.h.beep('count', Math.ceil(60 - intoMin), 3);
       }
       if (minNow !== this.minute) {
-        if (this.phase === 'work') this.completeMove();
+        if (this.phase === 'work' || this.phase === 'move') this.completeMove(); // the minute is over: count it even without a Done tap
         if (this.items()[this.ii] && this.items()[this.ii].kind === 'cardio') this.cardioSlot++;
         this.minute = minNow; this.ii = minNow % this.items().length; this.h.beep('switch');
         this.enter(false); this.h.speak(callout.concat(moveSeq(this.current(), false))); this.h.change(); return;
